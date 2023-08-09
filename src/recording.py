@@ -1,11 +1,12 @@
 import os.path
 import datetime
 import detection_params
-import cv2 as cv
+import cv2
 import pandas as pd
+from PIL import Image
 
 
-class VisuRecorder:
+class VideoRecorder:
     """
     Class for recording visualizations produced by an angle detector object.
 
@@ -30,18 +31,18 @@ class VisuRecorder:
     """
     def __init__(self, rec_filename="rec"):
         # create path for saving records
-        if not os.path.exists("../VisuRecords"):
-            os.makedirs("../VisuRecords")
+        if not os.path.exists("../VideoRecords"):
+            os.makedirs("../VideoRecords")
 
         # create timestamp for file name
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # initialize recorder
-        self.recorder = cv.VideoWriter(f"../VisuRecords/{timestamp}_{rec_filename}.avi",
-                                       cv.VideoWriter_fourcc(*'MJPG'), detection_params.recorder_frame_rate,
+        self.recorder = cv2.VideoWriter(f"../VideoRecords/{timestamp}_{rec_filename}.avi",
+                                       cv2.VideoWriter_fourcc(*'MJPG'), detection_params.recorder_frame_rate,
                                        (detection_params.warped_frame_side, detection_params.warped_frame_side))
 
-    def record_visu(self, angle_detector):
+    def record_video(self, angle_detector):
         # write frame to file with recorder method
         # make sure that visualization is created
         if angle_detector.visu is not None and angle_detector.visu_used is True:
@@ -53,7 +54,7 @@ class VisuRecorder:
             raise RuntimeError("No visualization found to be recorded. "
                                "Use 'record_visu()'-function only in combination with 'get_angle()'-function")
 
-    def stop_recording_visu(self):
+    def stop_recording_video(self):
         # release resources
         self.recorder.release()
 
@@ -133,10 +134,6 @@ class FrameExtractor:
         The prefix of the extracted frame file names (default: "frame").
     folder : str, optional
         The name of the folder where the extracted frames will be saved (default: "folder").
-    rate : int, optional
-        The frame extraction rate in frames per second (default: 10).
-    count : int, optional
-        The maximum number of frames to extract (default: 10).
 
     Attributes
     ----------
@@ -144,12 +141,6 @@ class FrameExtractor:
         The prefix of the extracted frame file names.
     folder : str
         The name of the folder where the extracted frames will be saved.
-    rate : int
-        The frame extraction rate in frames per second.
-    frames : int
-        The maximum number of frames to extract.
-    rate_count : int
-        A counter for the frame extraction rate.
     frame_count : int
         A counter for the number of frames extracted.
     timestamp : str
@@ -157,18 +148,15 @@ class FrameExtractor:
 
     Methods
     -------
-    extract_frames(angle_detector)
+    save_latest_frame(frame)
         Extracts frames from the angle detector's visualization.
     """
-    def __init__(self, frame_filename='frame', folder="folder", rate=10, count=10):
+    def __init__(self, frame_filename='frame', folder="folder"):
         # load parameters
         self.filename = frame_filename
         self.folder = folder
-        self.rate = rate
-        self.frames = count
 
-        self.rate_count = 0
-        self.frame_count = 1
+        self.frame_count = 0
 
         # create timestamp
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -177,19 +165,12 @@ class FrameExtractor:
         if not os.path.exists(f"../ExtractedFrames/{self.timestamp}_{self.folder}"):
             os.makedirs(f"../ExtractedFrames/{self.timestamp}_{self.folder}")
 
-    def extract_frames(self, angle_detector):
+    def save_latest_frame(self, frame):
         # make sure that angle detection is active and frames are captured
-        if angle_detector.visu is not None:
-            # safe specified number of frames with specified rate
-            self.rate_count += 1
-            if (self.rate_count >= self.rate) & (self.frame_count <= self.frames):
-                cv.imwrite(f"../ExtractedFrames/{self.timestamp}_"
-                           f"{self.folder}/{self.filename}_{angle_detector.timestamp}.jpg", angle_detector.visu)
-                self.frame_count += 1
-                self.rate_count = 0
-        elif angle_detector.visu_used is False:
-            raise RuntimeError("No visualization found to extract frames from. "
-                               "Use 'extract_frames()'-function only in combination with 'visualize()-function.")
-        else:
-            raise RuntimeError("No visualization found to extract frames from. "
-                               "Use 'extract_frames()'-function only in combination with 'get_angle()'-function")
+        if frame is not None:
+            pil_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            pil_image.save("../ExtractedFrames/{}_"
+                           "{}/{}_{:06d}.jpg".format(self.timestamp, self.folder, self.filename,
+                                                     self.frame_count))
+            self.frame_count += 1
+

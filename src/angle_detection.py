@@ -1,9 +1,28 @@
 import importlib
-import cv2 as cv
+import cv2
 import numpy as np
 import math
 import detection_params
 import time
+
+
+# Create a black background image
+size = 50
+circle_image = np.zeros((size, size), dtype=np.uint8)
+
+# Define the circle parameters
+center = (size//2, size//2)
+radius = size//2
+color = 255 # White color
+thickness = -1  # Filled circle
+
+# Draw the white circle on the black background
+cv2.circle(circle_image, center, radius, color, thickness)
+
+cv2.imshow("NAME", circle_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
 
 
 def norm_vector(vector):
@@ -85,7 +104,7 @@ def get_contour_center(pts):
     numpy.ndarray
         A numpy array representing the center point of the contour.
     """
-    moments = cv.moments(pts)
+    moments = cv2.moments(pts)
     cx = int(moments['m10'] / moments['m00'])
     cy = int(moments['m01'] / moments['m00'])
     center = np.array([cx, cy])
@@ -133,7 +152,7 @@ def get_center_position(contours):
     contour_id = -1
     for i, c in enumerate(contours):
         # Filter contours by size of the area they are covering to make sure only the coloured circles are detected
-        area = cv.contourArea(c)
+        area = cv2.contourArea(c)
 
         if area < detection_params.area_min or detection_params.area_max < area:
             continue
@@ -152,22 +171,50 @@ def get_center_position(contours):
     return position, found, contour_id
 
 
+def get_center_position_by_template(frame):
+    """
+    Computes the center of the contour that is searched for.
+
+    Parameters
+    ----------
+    """
+    # Convert frame to hsv-colour-space for colour filtering
+    frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # Preparing mask to overlay
+    mask_red = cv2.inRange(frame_hsv, detection_params.red_min, detection_params.red_max)
+    mask_green = cv2.inRange(frame_hsv, detection_params.green_min, detection_params.green_max)
+
+    # Perform template matching
+    red_result = cv2.matchTemplate(mask_red, circle_image, cv2.TM_CCOEFF_NORMED)
+    green_result = cv2.matchTemplate(mask_green, circle_image, cv2.TM_CCOEFF_NORMED)
+
+    # Get the position of the best match
+    min_val, max_val_red, min_loc, max_loc = cv2.minMaxLoc(red_result)
+    h, w = circle_image.shape
+    red_center = np.array((int(max_loc[0] + w/2), int(max_loc[1] + h/2)))
+
+    min_val, max_val_green, min_loc, max_loc = cv2.minMaxLoc(green_result)
+    h, w = circle_image.shape
+    green_center = np.array((int(max_loc[0] + w/2), int(max_loc[1] + h/2)))
+    if max_val_red > 0.5 and max_val_green > 0.5:
+        return red_center, True, green_center, True
+    else:
+        return red_center, False, green_center, False
+
+
+
 class AngleDetector:
     """
     Class for detecting the angles and angular velocities of a double pendulum system.
 
     Parameters
     ----------
-    camera : Camera
-        The camera object used for capturing the video stream.
     definition : int, optional
         An integer value that determines the reference vector for the second pendulum arm.
         0 for absolute, 1 for relative measurement.
 
     Attributes
     ----------
-    camera: Camera
-        The camera object used for capturing the video stream.
     definition : int
         An integer value that determines the reference vector for the second pendulum arm.
     contours_red : numpy.ndarray
@@ -204,10 +251,6 @@ class AngleDetector:
         The timestamp of when the AngleDetector object was created.
     timestamp : float
         The timestamp of the most recent angle calculation.
-    visu : numpy.ndarray
-        The most recent warped frame. Also used for visualization.
-    visu_used : Bool
-        A boolean indicator to show if visu function is used.
 
     Methods
     -------
@@ -220,10 +263,9 @@ class AngleDetector:
     visualize(vis_text=True, vis_contours=True, vis_vectors=True)
         Visualizes the live results of angle detection.
     """
-    def __init__(self, camera, definition=0):
+    def __init__(self, definition=0):
         importlib.reload(detection_params)  # reload parameter file in case of changes due to calibration
 
-        self.camera = camera
         self.definition = definition
         self.contours_red = None
         self.contours_green = None
@@ -242,10 +284,21 @@ class AngleDetector:
         self.angle_buffer_2 = AngleBuffer()
         self.start_time = time.time()
         self.timestamp = float("NaN")
-        self.visu = None
-        self.visu_used = False
+        self.visualization = None
+        self.frame_rate = None
 
-    def get_contours(self):
+    def warp_image(self, frame):
+        # Warp frame with warp matrix to frame with defined side length
+        frame_warped = cv2.warpPerspective(frame, detection_params.warp_matrix,
+                                          (detection_params.warped_frame_side, detection_params.warped_frame_side))
+        self.visualization = frame_warped
+
+        new_timestamp = float(round(time.time()-self.start_time, 4))
+        self.frame_rate = 1 / (new_timestamp - self.timestamp)
+        self.timestamp = new_timestamp
+        return frame_warped
+
+    def get_contours(self, frame):
         """
         Filters the captured frame for red and green colour and extracts the contours separately
 
@@ -256,27 +309,19 @@ class AngleDetector:
         contours_green: numpy.ndarray
             The green contours found in the frame.
         """
-        frame = self.camera.capture_image()
-
-        # Warp frame with warp matrix to frame with defined side length
-        frame_warped = cv.warpPerspective(frame, detection_params.warp_matrix,
-                                          (detection_params.warped_frame_side, detection_params.warped_frame_side))
-        self.visu = frame_warped
-
         # Convert frame to hsv-colour-space for colour filtering
-        frame_hsv = cv.cvtColor(frame_warped, cv.COLOR_BGR2HSV)
+        frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         # Preparing mask to overlay
-        mask_red = cv.inRange(frame_hsv, detection_params.red_min, detection_params.red_max)
-        mask_green = cv.inRange(frame_hsv, detection_params.green_min, detection_params.green_max)
+        mask_red = cv2.inRange(frame_hsv, detection_params.red_min, detection_params.red_max)
+        mask_green = cv2.inRange(frame_hsv, detection_params.green_min, detection_params.green_max)
 
         # Find contours for red and green shapes in frame
-        contours_red, _ = cv.findContours(mask_red, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
-        contours_green, _ = cv.findContours(mask_green, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+        self.contours_red, _ = cv2.findContours(mask_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+        self.contours_green, _ = cv2.findContours(mask_green, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
-        return contours_red, contours_green
-
-    def get_angle(self):
+    def get_angle(self, frame):
+        start_time = time.time()
         """
         Calculates the angles of the double pendulum using the extracted contours.
 
@@ -286,9 +331,10 @@ class AngleDetector:
             A list of two float elements representing the first and second angle respectively.
         """
         # Try to detect red and green circle in frame and calculate center
-        self.contours_red, self.contours_green = self.get_contours()
+        self.get_contours(frame)
         self.pos_B, found_B, self.contour_red_id = get_center_position(self.contours_red)
         self.pos_C, found_C, self.contour_green_id = get_center_position(self.contours_green)
+        # self.pos_B, found_B, self.pos_C, found_C = get_center_position_by_template(frame)
 
         # Calculate angle of first arm
         if found_B:
@@ -327,10 +373,10 @@ class AngleDetector:
             self.angle_2 = float('NaN')
 
         # Fill angle buffer for calculation of angular velocities
-        self.timestamp = float(round(time.time()-self.start_time, 4))
         self.angle_buffer_1.shift_buffer(self.angle_1, self.timestamp)
         self.angle_buffer_2.shift_buffer(self.angle_2, self.timestamp)
 
+        print("Angle detection needed: {:.1f} ms".format((time.time() - start_time)*1000))
         return [self.angle_1, self.angle_2]
 
     def get_angular_vel(self):
@@ -368,16 +414,14 @@ class AngleDetector:
             Boolean value to decide if timestamp should be visualized.
         """
         # Ensure that frame for visualization are available
-        if self.visu is not None:
-            # set marker for other error-handling functionalities
-            self.visu_used = True
+        if self.visualization is not None:
             # visualization of the contours used for angle computation
             if vis_contours:
                 # draw contours only when function get_center_position returned a valid value
                 if self.contour_red_id != -1:
-                    cv.drawContours(self.visu, self.contours_red, self.contour_red_id, (0, 0, 255), 1)
+                    cv2.drawContours(self.visualization, self.contours_red, self.contour_red_id, (0, 0, 255), 1)
                 if self.contour_green_id != -1:
-                    cv.drawContours(self.visu, self.contours_green, self.contour_green_id, (0, 0, 255), 1)
+                    cv2.drawContours(self.visualization, self.contours_green, self.contour_green_id, (0, 0, 255), 1)
 
             # if angle_1 could be detected set text labels and draw vectors for angle visualization
             if not math.isnan(self.angle_1):
@@ -389,17 +433,17 @@ class AngleDetector:
                     label12 = "NaN"
                 if vis_vectors:
                     # draw vector between joints
-                    cv.line(self.visu, self.pos_A, self.pos_B, (255, 0, 0), thickness=1)
+                    cv2.line(self.visualization, self.pos_A, self.pos_B, (255, 0, 0), thickness=1)
                     # draw reference axis
-                    cv.line(self.visu, self.pos_A, self.pos_A + get_axis_visu(self.vec_ref_1), (0, 255, 0),
-                            lineType=cv.LINE_8, thickness=1)
+                    cv2.line(self.visualization, self.pos_A, self.pos_A + get_axis_visu(self.vec_ref_1), (0, 255, 0),
+                            lineType=cv2.LINE_8, thickness=1)
                     # draw angle visu
                     if check_side(self.pos_A, self.pos_A + (0, 100), self.pos_A + self.vec_ref_1) == (-1 | 0):
                         angular_offset = np.rad2deg(calc_angle(np.array((0, 1)), detection_params.vec_ref_1))
                     else:
                         angular_offset = -np.rad2deg(calc_angle(np.array((0, 1)), detection_params.vec_ref_1))
                     start_angle = 90 - angular_offset
-                    cv.ellipse(self.visu, self.pos_A, (45, 45), 0, start_angle, start_angle - np.rad2deg(self.angle_1),
+                    cv2.ellipse(self.visualization, self.pos_A, (45, 45), 0, start_angle, start_angle - np.rad2deg(self.angle_1),
                                (0, 255, 0))  # angle ellipse
             else:
                 label11 = "NaN"
@@ -415,19 +459,19 @@ class AngleDetector:
                     label22 = "NaN"
                 if vis_vectors:
                     # draw vector between joints
-                    cv.line(self.visu, self.pos_B, self.pos_C, (255, 0, 0), thickness=1)
+                    cv2.line(self.visualization, self.pos_B, self.pos_C, (255, 0, 0), thickness=1)
                     # distinguish by chosen definition
                     if self.definition == 0:  # relative definition
                         # draw reference axis
-                        cv.line(self.visu, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2), (0, 255, 0),
-                                lineType=cv.LINE_8, thickness=1)
+                        cv2.line(self.visualization, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2), (0, 255, 0),
+                                lineType=cv2.LINE_8, thickness=1)
                         # draw angle visu
-                        cv.ellipse(self.visu, self.pos_B, (45, 45), 0, 90 - np.rad2deg(self.angle_1),
+                        cv2.ellipse(self.visualization, self.pos_B, (45, 45), 0, 90 - np.rad2deg(self.angle_1),
                                    90 - np.rad2deg(self.angle_1) - np.rad2deg(self.angle_2), (0, 255, 0))
                     elif self.definition == 1:  # absolute definition
                         # draw reference axis
-                        cv.line(self.visu, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2),
-                                (0, 255, 0), lineType=cv.LINE_8,
+                        cv2.line(self.visualization, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2),
+                                (0, 255, 0), lineType=cv2.LINE_8,
                                 thickness=1)
                         # draw angle visu
                         if check_side(self.pos_B, self.pos_B + (0, 100), self.pos_B + self.vec_ref_2) == (-1 | 0):
@@ -435,7 +479,7 @@ class AngleDetector:
                         else:
                             angular_offset = -np.rad2deg(calc_angle(np.array((0, 1)), self.vec_ref_2))
                         start_angle = 90 - angular_offset
-                        cv.ellipse(self.visu, self.pos_B, (45, 45), 0, start_angle,
+                        cv2.ellipse(self.visualization, self.pos_B, (45, 45), 0, start_angle,
                                    start_angle - np.rad2deg(self.angle_2), (0, 255, 0))
             else:
                 label21 = "NaN"
@@ -444,45 +488,45 @@ class AngleDetector:
             # print measured values in openCV window using defined labels
             if vis_text:
                 # white background
-                cv.rectangle(self.visu, (0, 0), (235, 80), (255, 255, 255), -1)
+                cv2.rectangle(self.visualization, (0, 0), (235, 80), (255, 255, 255), -1)
 
                 # splitting in multiple function calls to achieve fixed positions (tabular)
-                cv.putText(self.visu, "angle_1", (2, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-                cv.putText(self.visu, "=", (79, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-                cv.putText(self.visu, label11, (102, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
+                cv2.putText(self.visualization, "angle_1", (2, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "=", (79, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, label11, (102, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
-                cv.putText(self.visu, "velocity_1", (2, 35), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-                cv.putText(self.visu, "=", (79, 35), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-                cv.putText(self.visu, label12, (102, 35), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
+                cv2.putText(self.visualization, "velocity_1", (2, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "=", (79, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, label12, (102, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
-                cv.putText(self.visu, "angle_2", (2, 55), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-                cv.putText(self.visu, "=", (79, 55), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-                cv.putText(self.visu, label21, (102, 55), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
+                cv2.putText(self.visualization, "angle_2", (2, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "=", (79, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, label21, (102, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
-                cv.putText(self.visu, "velocity_2", (2, 75), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-                cv.putText(self.visu, "=", (79, 75), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-                cv.putText(self.visu, label22, (102, 75), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
+                cv2.putText(self.visualization, "velocity_2", (2, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "=", (79, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, label22, (102, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
             # draw found center position of contours
             if vis_vectors:
-                cv.circle(self.visu, self.pos_A, 2, (255, 0, 0), thickness=3)
+                cv2.circle(self.visualization, self.pos_A, 2, (255, 0, 0), thickness=3)
                 if not math.isnan(self.pos_B[0]):
-                    cv.circle(self.visu, self.pos_B, 2, (255, 0, 0), thickness=3)
+                    cv2.circle(self.visualization, self.pos_B, 2, (255, 0, 0), thickness=3)
                 if not math.isnan(self.pos_C[0]):
-                    cv.circle(self.visu, self.pos_C, 2, (255, 0, 0), thickness=3)
+                    cv2.circle(self.visualization, self.pos_C, 2, (255, 0, 0), thickness=3)
 
             if vis_timestamp:
-                cv.rectangle(self.visu, (detection_params.warped_frame_side-130, 0),
-                             (detection_params.warped_frame_side, 20), (255, 255, 255), -1)
-                cv.putText(self.visu, f"t = {self.timestamp}s", (detection_params.warped_frame_side-128, 16),
-                           cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
-
-            # show frame in pop-up window
-            cv.namedWindow('Angle Detection', cv.WINDOW_AUTOSIZE)
-            cv.imshow('Angle Detection', self.visu)
+                cv2.rectangle(self.visualization, (detection_params.warped_frame_side-130, 0),
+                             (detection_params.warped_frame_side, 40), (255, 255, 255), -1)
+                cv2.putText(self.visualization, f"t = {self.timestamp}s", (detection_params.warped_frame_side-128, 16),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "fps = {:.0f}".format(self.frame_rate),
+                           (detection_params.warped_frame_side-128, 32),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
         else:
             raise RuntimeError("Nothing to visualize. "
                                "Use 'visualize()'-function only in combination with 'get_angle()'-function.")
+        return self.visualization
 
 
 class AngleBuffer:

@@ -1,6 +1,7 @@
 from pyueye import ueye
 import numpy as np
 import cv2
+import os
 
 
 class IDSCameraController:
