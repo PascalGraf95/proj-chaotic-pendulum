@@ -1,6 +1,8 @@
-from src.calibration.calibration import get_hsv_masks, get_reference_axis, get_warp_matrix, calibration_params as cal_params
-from camera_controller import IDSCameraController
-from angle_detection import AngleDetector
+from src.calibration.calibration_params import *
+from src.calibration import get_hsv_masks, get_warp_matrix, get_reference_axis
+from src.data_acquisition.camera_controller import IDSCameraController
+from src.data_acquisition.angle_detection import AngleDetector
+from src.calibration import calibration_params as cal_params
 import cv2 as cv
 import numpy as np
 

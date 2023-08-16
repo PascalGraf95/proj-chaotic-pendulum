@@ -186,9 +186,9 @@ def evaluate_model(model, x_test, y_test):
 
 
 if __name__ == '__main__':
-    data = load_data_from_csv(r"/DataRecords/2023-08-11_14-29-45_DemoFolder/2023-08-11_14-29-45_log.csv")
+    data = load_data_from_csv(r"C:\PGraf\Arbeit\RL\ZML_GitLab\proj-chaotic-pendulum\DataRecords\2023-08-16_13-12-22_DemoFolder\2023-08-16_13-12-22_log.csv")
     x_train, x_val, x_test, y_train, y_val, y_test = filter_and_preprocess_data(data)
-    # model = keras.models.load_model('model_checkpoint.h5')
-    model = construct_network()
-    train_model(model, x_train, x_val, y_train, y_val)
+    model = keras.models.load_model('model_checkpoint.h5')
+    # model = construct_network()
+    # train_model(model, x_train, x_val, y_train, y_val)
     evaluate_model(model, x_test, y_test)

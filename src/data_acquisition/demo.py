@@ -46,64 +46,66 @@ def main(video_path, record=False, live_feed=True, detect=False):
     # Set default values for angles and their velocities
     angles = [None, None]
     angular_velocities = [None, None]
-
-    while True:
-        # start_time = time.time()
-        # Get the latest camera image
-        frame = camera.capture_image()
-        # takes about 1 ms
-
-        # Transfer frame rate and fps from camera
-        measurement.set_timestamp(camera.timestamp, camera.frame_rate)
-
-        # Warp image according to warp matrix
-        warped_frame = measurement.warp_image(frame, already_warped= video_path is not None)
-        # takes about 3 ms
-
-        if detect:
-            # Detect angles of pendulum
-            angles = measurement.get_angle(warped_frame)
-            # takes about 5 ms
-
-            # Compute angular velocities
-            angular_velocities = measurement.get_angular_vel()
+    try:
+        while True:
+            # start_time = time.time()
+            # Get the latest camera image
+            frame = camera.capture_image()
             # takes about 1 ms
 
-        # Visualize measurement live, vis_text = enable text field with current data,
-        # vis_contours = enable visualization of used contours, vis_vectors = enable visualization of angle definition,
-        # vis_timestamp = enable text field with timestamp
-        # Note: Use only in combination with get_angle() and if velocities needed with get_angular_vel()
-        if detect:
-            visualization = measurement.visualize(vis_text=True, vis_contours=True,
-                                                  vis_vectors=True, vis_timestamp=True)
-        else:
-            visualization = measurement.visualize(vis_text=False, vis_contours=False,
-                                                  vis_vectors=False, vis_timestamp=True)
-        # takes about 1ms
+            # Transfer frame rate and fps from camera
+            measurement.set_timestamp(camera.timestamp, camera.frame_rate)
 
-        # Record visualization of measurement, passing parameter: AngleDetector-Object
-        # Note: Use only in combination with visualize() function
-        # video_recorder.record_video(measurement)
-        if record:
-            # Extract frames from visualization, passing parameter: AngleDetector-Object
-            # Note: Use only in combination with visualize() function
-            frame_extr.save_latest_frame(visualization)
-            # takes about 5-6 ms of time
-            # Record data of active measurement, passing parameter: AngleDetector-Object
-            # Note: Use only in combination with get_angle() and if needed get_angular_vel() function
-            data_rec.write_datarow(angles, angular_velocities, measurement.timestamp)
-
-        if live_feed:
-            cv2.imshow("Live Image", visualization)
+            # Warp image according to warp matrix
+            warped_frame = measurement.warp_image(frame, already_warped= video_path is not None)
             # takes about 3 ms
 
-            # Possibility to quit measurement by hitting 'q'. Only usable if visualize() function is used.
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            if detect:
+                # Detect angles of pendulum
+                angles = measurement.get_angle(warped_frame)
+                # takes about 5 ms
 
-        if camera.video_has_ended:
-            break
-        # print("Total Time: {:.1f}".format((time.time() - start_time)*1000))
+                # Compute angular velocities
+                angular_velocities = measurement.get_angular_vel()
+                # takes about 1 ms
+
+            # Visualize measurement live, vis_text = enable text field with current data,
+            # vis_contours = enable visualization of used contours, vis_vectors = enable visualization of angle definition,
+            # vis_timestamp = enable text field with timestamp
+            # Note: Use only in combination with get_angle() and if velocities needed with get_angular_vel()
+            if detect:
+                visualization = measurement.visualize(vis_text=True, vis_contours=True,
+                                                      vis_vectors=True, vis_timestamp=True)
+            else:
+                visualization = measurement.visualize(vis_text=False, vis_contours=False,
+                                                      vis_vectors=False, vis_timestamp=True)
+            # takes about 1ms
+
+            # Record visualization of measurement, passing parameter: AngleDetector-Object
+            # Note: Use only in combination with visualize() function
+            # video_recorder.record_video(measurement)
+            if record:
+                # Extract frames from visualization, passing parameter: AngleDetector-Object
+                # Note: Use only in combination with visualize() function
+                frame_extr.save_latest_frame(visualization)
+                # takes about 5-6 ms of time
+                # Record data of active measurement, passing parameter: AngleDetector-Object
+                # Note: Use only in combination with get_angle() and if needed get_angular_vel() function
+                data_rec.write_datarow(angles, angular_velocities, measurement.timestamp)
+
+            if live_feed:
+                cv2.imshow("Live Image", visualization)
+                # takes about 3 ms
+
+                # Possibility to quit measurement by hitting 'q'. Only usable if visualize() function is used.
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+            if camera.video_has_ended:
+                break
+            # print("Total Time: {:.1f}".format((time.time() - start_time)*1000))
+    except KeyboardInterrupt:
+        print("Keyboard interrupt detected. Exiting gracefully.")
 
 
     # Release all resources

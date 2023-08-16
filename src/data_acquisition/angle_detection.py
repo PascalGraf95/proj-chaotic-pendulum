@@ -394,7 +394,7 @@ class AngleDetector:
         self.angle_buffer_1.shift_buffer(self.angle_1, self.timestamp)
         self.angle_buffer_2.shift_buffer(self.angle_2, self.timestamp)
 
-        print("Angle detection needed: {:.1f} ms".format((time.time() - start_time)*1000))
+        # print("Angle detection needed: {:.1f} ms".format((time.time() - start_time)*1000))
         return [self.angle_1, self.angle_2]
 
     def get_angular_vel(self):
@@ -451,10 +451,10 @@ class AngleDetector:
                     label12 = "NaN"
                 if vis_vectors:
                     # draw vector between joints
-                    cv2.line(self.visualization, self.pos_A, self.pos_B, (255, 0, 0), thickness=1)
+                    cv2.line(self.visualization, self.pos_A, self.pos_B, (255, 0, 0), thickness=1, lineType=cv2.LINE_AA)
                     # draw reference axis
                     cv2.line(self.visualization, self.pos_A, self.pos_A + get_axis_visu(self.vec_ref_1), (0, 255, 0),
-                            lineType=cv2.LINE_8, thickness=1)
+                            lineType=cv2.LINE_AA, thickness=1)
                     # draw angle visu
                     if check_side(self.pos_A, self.pos_A + (0, 100), self.pos_A + self.vec_ref_1) == (-1 | 0):
                         angular_offset = np.rad2deg(calc_angle(np.array((0, 1)), detection_params.vec_ref_1))
@@ -477,19 +477,19 @@ class AngleDetector:
                     label22 = "NaN"
                 if vis_vectors:
                     # draw vector between joints
-                    cv2.line(self.visualization, self.pos_B, self.pos_C, (255, 0, 0), thickness=1)
+                    cv2.line(self.visualization, self.pos_B, self.pos_C, (255, 0, 0), thickness=1, lineType=cv2.LINE_AA)
                     # distinguish by chosen definition
                     if self.definition == 0:  # relative definition
                         # draw reference axis
                         cv2.line(self.visualization, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2), (0, 255, 0),
-                                lineType=cv2.LINE_8, thickness=1)
+                                 lineType=cv2.LINE_AA, thickness=1)
                         # draw angle visu
                         cv2.ellipse(self.visualization, self.pos_B, (45, 45), 0, 90 - np.rad2deg(self.angle_1),
                                    90 - np.rad2deg(self.angle_1) - np.rad2deg(self.angle_2), (0, 255, 0))
                     elif self.definition == 1:  # absolute definition
                         # draw reference axis
                         cv2.line(self.visualization, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2),
-                                (0, 255, 0), lineType=cv2.LINE_8,
+                                (0, 255, 0), lineType=cv2.LINE_AA,
                                 thickness=1)
                         # draw angle visu
                         if check_side(self.pos_B, self.pos_B + (0, 100), self.pos_B + self.vec_ref_2) == (-1 | 0):

@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from src.calibration.calibration import calibration_params as calibration_params
+from src.calibration import calibration_params
 
 overwrite_hsv_parameters = True
 

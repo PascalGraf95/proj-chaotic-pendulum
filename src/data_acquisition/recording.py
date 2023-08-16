@@ -98,8 +98,8 @@ class DataRecorder:
         self.folder = folder
 
         # create path for saving files
-        if not os.path.exists(f"../DataRecords/{self.timestamp}_{self.folder}"):
-            os.makedirs(f"../DataRecords/{self.timestamp}_{self.folder}")
+        if not os.path.exists(f"../../DataRecords/{self.timestamp}_{self.folder}"):
+            os.makedirs(f"../../DataRecords/{self.timestamp}_{self.folder}")
 
         # create dataframe
         self.df = pd.DataFrame({"Time": [], "Angle1": [], "Angle2": [], "AngularVel1": [], "AngularVel2": []})
@@ -112,13 +112,13 @@ class DataRecorder:
 
     def save_pickle(self):
         if len(self.df.index) != 0:
-            self.df.to_pickle(f"../DataRecords/{self.timestamp}_{self.folder}/{self.timestamp}_{self.filename}.pkl")
+            self.df.to_pickle(f"../../DataRecords/{self.timestamp}_{self.folder}/{self.timestamp}_{self.filename}.pkl")
         else:
             print("WARNING: No values found to save to .pkl-file. Use 'write_datarow'-function to collect data.")
 
     def save_csv(self):
         if len(self.df.Time.value_counts()) > 0:
-            self.df.to_csv(f"../DataRecords/{self.timestamp}_{self.folder}/{self.timestamp}_{self.filename}.csv",
+            self.df.to_csv(f"../../DataRecords/{self.timestamp}_{self.folder}/{self.timestamp}_{self.filename}.csv",
                            sep=';', index=False, decimal='.')
         else:
             print("WARNING: No values found to save to .csv-file. Use 'write_datarow'-function to collect data.")
@@ -162,14 +162,14 @@ class FrameRecorder:
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # create file path for saving frames
-        if not os.path.exists(f"../DataRecords/{self.timestamp}_{self.folder}"):
-            os.makedirs(f"../DataRecords/{self.timestamp}_{self.folder}")
+        if not os.path.exists(f"../../DataRecords/{self.timestamp}_{self.folder}"):
+            os.makedirs(f"../../DataRecords/{self.timestamp}_{self.folder}")
 
     def save_latest_frame(self, frame):
         # make sure that angle detection is active and frames are captured
         if frame is not None:
             pil_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            pil_image.save("../DataRecords/{}_"
+            pil_image.save("../../DataRecords/{}_"
                            "{}/{}_{:06d}.jpg".format(self.timestamp, self.folder, self.filename,
                                                      self.frame_count))
             self.frame_count += 1
