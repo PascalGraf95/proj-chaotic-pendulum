@@ -1,32 +1,34 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.layers import LSTM, Dense, BatchNormalization, Dropout
+from tensorflow.keras.callbacks import TensorBoard
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
+import argparse
+import tensorboard
+import time
+import datetime
 
 
-sequence_length = 50
-output_length = 20
-overlap = 1
-batch_size = 32
-epochs = 500
-
-
-# Normalize the data
-scaler_x = MinMaxScaler()
-scaler_y = MinMaxScaler()
+# Custom MSE loss function with respect to modulo 1
+def custom_mse_modulo(y_true, y_pred):
+    y_pred_mod = tf.where(tf.logical_and(tf.greater_equal(y_pred, -0.05), tf.less_equal(y_pred, 1.05)),
+                          y_pred - (y_pred // 1),
+                          y_pred)
+    squared_diff = tf.square(y_true - y_pred_mod)
+    mse = tf.reduce_mean(squared_diff, axis=-1)
+    return mse
 
 
 def load_data_from_csv(path):
     return pd.read_csv(path, delimiter=";")
 
 
-def filter_and_preprocess_data(data):
+def filter_and_preprocess_data(data, sequence_length, output_length, overlap):
     timestamps = data["Time"].to_numpy()
     angle_1 = data["Angle1"].to_numpy()
     angle_2 = data["Angle2"].to_numpy()
@@ -64,131 +66,142 @@ def filter_and_preprocess_data(data):
     return x_train, x_val, x_test, y_train, y_val, y_test
 
 
+class RNNModel:
+    def __init__(self, inputs, outputs, layers=1, units=None, model_path=None):
+        if model_path:
+            self.model = keras.models.load_model(model_path)
+            return
 
-"""
-X_train, X_test, y_train, y_test
-= train_test_split(X, y, test_size=0.2, random_state=1)
+        self.construct_network(inputs, outputs, layers=layers, units=units)
 
+    def construct_network(self, inputs, outputs, layers=1, units=None):
+        first_lstm = True
+        # Build the RNN model
+        if units is None:
+            units = [32]
 
-X_train, X_val, y_train, y_val
-= train_test_split(X_train, y_train, test_size=0.25, random_state=1)  # 0.25 x 0.8 = 0.2
-"""
+        model_input = keras.layers.Input((inputs, 2))
+        x = model_input
 
+        for l in range(layers):
+            x = LSTM(units[l], activation='relu', return_sequences=(first_lstm and layers > 1))(x)
+            x = BatchNormalization()(x)
+            x = Dropout(0.25)(x)
+            first_lstm = False
 
-"""
-# Generate sample data (replace with your own data)
-num_samples = 1000
-num_features = 4
+        x = Dense(2*units[0], activation='relu')(x)
+        model_output = Dense(2*outputs)(x)
 
-X = np.random.rand(num_samples, num_features)
-y = np.random.rand(num_samples, 4)  # Four output values
+        self.model = keras.Model(inputs=model_input, outputs=model_output)
+        self.model.summary()
+        self.model.compile(optimizer='adam', loss='mse')
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    def train_model(self, x_train, x_val, y_train, y_val, epochs=100, batch_size=32):
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_rnn_model")
+        path_checkpoint = f"./model_checkpoints/{timestamp}_rnn_model.h5"
+        path_tensorboard = f"./logs/{timestamp}_rnn_model"
+        # early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss")
 
-# Normalize the data
-scaler_X = MinMaxScaler()
-scaler_y = MinMaxScaler()
+        checkpoint = keras.callbacks.ModelCheckpoint(
+            monitor="val_loss",
+            filepath=path_checkpoint,
+            verbose=1,
+            save_weights_only=False,
+            save_best_only=True,
+        )
 
-X_train_scaled = scaler_X.fit_transform(X_train)
-X_test_scaled = scaler_X.transform(X_test)
+        # Create a TensorBoard callback
+        tensorboard_callback = TensorBoard(log_dir=path_tensorboard)
 
-y_train_scaled = scaler_y.fit_transform(y_train)
-y_test_scaled = scaler_y.transform(y_test)
+        # Train the model
+        history = self.model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(x_val, y_val),
+                                 callbacks=[checkpoint, tensorboard_callback])
 
-# Reshape the data for RNN input
-time_steps = 10
-X_train_reshaped = X_train_scaled.reshape(-1, time_steps, num_features)
-X_test_reshaped = X_test_scaled.reshape(-1, time_steps, num_features)
-"""
-
-
-def construct_network():
-    # Build the RNN model
-    model = Sequential()
-    model.add(LSTM(32, activation='relu', input_shape=(sequence_length, 2), return_sequences=False))
-    model.add(Dense(2*output_length))  # Output layer with 2 neurons for forecasting
-
-    model.summary()
-    # Compile the model
-    model.compile(optimizer='adam', loss='mse')
-    return model
-
-
-def train_model(model, x_train, x_val, y_train, y_val):
-    path_checkpoint = "model_checkpoint.h5"
-    early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", min_delta=0, patience=25)
-
-    checkpoint = keras.callbacks.ModelCheckpoint(
-        monitor="val_loss",
-        filepath=path_checkpoint,
-        verbose=1,
-        save_weights_only=False,
-        save_best_only=True,
-    )
-
-    # Train the model
-    history = model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(x_val, y_val),
-                        callbacks=[early_stopping, checkpoint])
-
-    # Plot training & validation loss values
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend(['Train', 'Validation'], loc='upper right')
-    plt.show()
-    return history
-
-
-# Custom MSE loss function with respect to modulo 1
-def custom_mse_modulo(y_true, y_pred):
-    y_pred_mod = tf.where(tf.logical_and(tf.greater_equal(y_pred, -0.05), tf.less_equal(y_pred, 1.05)),
-                          y_pred - (y_pred // 1),
-                          y_pred)
-    squared_diff = tf.square(y_true - y_pred_mod)
-    mse = tf.reduce_mean(squared_diff, axis=-1)
-    return mse
-
-
-def evaluate_model(model, x_test, y_test):
-    # Evaluate the model
-    loss = model.evaluate(x_test, y_test)
-    print("Test Loss:", loss)
-
-    for x_sample, y_sample in zip(x_test, y_test):
-        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-        time_array = np.array(range(sequence_length))
-        y_pred = model.predict(np.expand_dims(x_sample, axis=0)).reshape(-1, 2)
-        y_sample = y_sample.reshape(-1, 2)
-        axes[0].scatter(time_array, x_sample[:, 0], label="Input Sequence")
-        axes[0].scatter(list(range(sequence_length, sequence_length+output_length)), y_pred[:, 0], label="Prediction")
-        axes[0].scatter(list(range(sequence_length, sequence_length+output_length)), y_sample[:, 0], label="Ground Truth")
-        axes[0].set_title("Arm 1")
-        axes[0].set_ylim([-3.2, 3.2])
-        axes[0].legend()
-        axes[0].grid(visible=True)
-
-        axes[1].scatter(time_array, x_sample[:, 1], label="Input Sequence")
-        axes[1].scatter(list(range(sequence_length, sequence_length+output_length)), y_pred[:, 1], label="Prediction")
-        axes[1].scatter(list(range(sequence_length, sequence_length+output_length)), y_sample[:, 1], label="Ground Truth")
-        axes[1].set_title("Arm 2")
-        axes[1].set_ylim([-3.2, 3.2])
-        axes[1].legend()
-        axes[1].grid(visible=True)
-
-
-
+        """
+        # Plot training & validation loss values
+        plt.plot(history.history['loss'])
+        plt.plot(history.history['val_loss'])
+        plt.title('Model loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend(['Train', 'Validation'], loc='upper right')
         plt.show()
+        """
+        return history
 
+    def evaluate_model(self, x_test, y_test, sequence_length, output_length):
+        # Evaluate the model
+        loss = self.model.evaluate(x_test, y_test)
+        print("Test Loss:", loss)
 
+        for x_sample, y_sample in zip(x_test, y_test):
+            fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+            time_array = np.array(range(sequence_length))
+            y_pred = self.model.predict(np.expand_dims(x_sample, axis=0)).reshape(-1, 2)
+            y_sample = y_sample.reshape(-1, 2)
+            axes[0].scatter(time_array, x_sample[:, 0], label="Input Sequence")
+            axes[0].scatter(list(range(sequence_length, sequence_length+output_length)), y_pred[:, 0],
+                            label="Prediction")
+            axes[0].scatter(list(range(sequence_length, sequence_length+output_length)), y_sample[:, 0],
+                            label="Ground Truth")
+            axes[0].set_title("Arm 1")
+            axes[0].set_ylim([-3.2, 3.2])
+            axes[0].legend()
+            axes[0].grid(visible=True)
+
+            axes[1].scatter(time_array, x_sample[:, 1], label="Input Sequence")
+            axes[1].scatter(list(range(sequence_length, sequence_length+output_length)), y_pred[:, 1],
+                            label="Prediction")
+            axes[1].scatter(list(range(sequence_length, sequence_length+output_length)), y_sample[:, 1],
+                            label="Ground Truth")
+            axes[1].set_title("Arm 2")
+            axes[1].set_ylim([-3.2, 3.2])
+            axes[1].legend()
+            axes[1].grid(visible=True)
+
+            plt.show()
 
 
 if __name__ == '__main__':
-    data = load_data_from_csv(r"C:\PGraf\Arbeit\RL\ZML_GitLab\proj-chaotic-pendulum\DataRecords\2023-08-16_13-12-22_DemoFolder\2023-08-16_13-12-22_log.csv")
-    x_train, x_val, x_test, y_train, y_val, y_test = filter_and_preprocess_data(data)
-    model = keras.models.load_model('model_checkpoint.h5')
-    # model = construct_network()
-    # train_model(model, x_train, x_val, y_train, y_val)
-    evaluate_model(model, x_test, y_test)
+    parser = argparse.ArgumentParser(description=".")
+    # Modes
+    parser.add_argument('-t', '--train', action=argparse.BooleanOptionalAction, default=False,
+                        help="", required=False)
+    parser.add_argument('-e', '--evaluate', action=argparse.BooleanOptionalAction, default=False,
+                        help="", required=False)
+
+    # Training Parameters
+    parser.add_argument('-seq_len', '--sequence_length', default=50, type=int, help="", required=False)
+    parser.add_argument('-out_len', '--output_length', default=20, type=int, help="", required=False)
+    parser.add_argument('-ov', '--overlap', default=1, type=int, help="", required=False)
+    parser.add_argument('-bs', '--batch_size', default=32, type=int, help="", required=False)
+    parser.add_argument('-ep', '--epochs', default=100, type=int, help="", required=False)
+
+    # Network
+    parser.add_argument('-l', '--layers', default=2, type=int, help="", required=False)
+    parser.add_argument('-u', '--units', default=[32, 16], type=list, help="", required=False)
+
+    # Paths
+    parser.add_argument('-mp', '--model_path', type=str, default=None, required=False)
+    parser.add_argument('-dp', '--data_path', type=str, default=None, required=False)
+
+    args = parser.parse_args()
+
+    # Data loading
+    data = load_data_from_csv(args.data_path)
+    x_train, x_val, x_test, y_train, y_val, y_test = filter_and_preprocess_data(data,
+                                                                                args.sequence_length,
+                                                                                args.output_length,
+                                                                                args.overlap)
+
+    if args.model_path:
+        model = keras.models.load_model(args.model_path)
+    else:
+        model = RNNModel(args.sequence_length, args.output_length, layers=args.layers, units=args.units,
+                         model_path=args.model_path)
+
+    if args.train:
+        model.train_model(x_train, x_val, y_train, y_val, args.epochs, args.batch_size)
+
+    if args.evaluate:
+        model.evaluate_model(x_test, y_test, args.sequence_length, args.output_length)
