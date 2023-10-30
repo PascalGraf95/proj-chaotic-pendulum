@@ -1,0 +1,10 @@
+opencv-python
+numpy
+tk-tools
+pyueye
+pandas
+tqdm
+argparse
+matplotlib
+Pillow
+pyueye
