@@ -3,7 +3,7 @@ import numpy as np
 import colorsys
 import calibration_params as cal_params
 import os.path
-from camera_controller import IDSCameraController
+from src.data_acquisition.camera_controller import IDSCameraController
 
 
 class HSVCollector:
@@ -28,6 +28,7 @@ class HSVCollector:
     get_hsv_range()
         Calculates the minimum and maximum HSV values from the collected HSV values.
     """
+
     def __init__(self):
         self.frame_warped = None
         self.hsv_values = np.empty((10, 3), dtype=np.uint8)
@@ -73,12 +74,12 @@ class HSVCollector:
         """
         # Calculate the minimum and maximum values for each component
         hsv_values = np.array(self.hsv_values[:self.hsv_values_idx])
-        hue_min, hue_max = np.min(hsv_values[:, 0]), np.max(hsv_values[:, 0])
+        hue_min, hue_max = np.min(hsv_values[:, 0])-20, np.max(hsv_values[:, 0])+20
         if hue_max - hue_min > 120:
             print("WARNING: Collected values might span across the boundary of the HSV colour space."
                   "This may lead to performance issues. Check debug scripts.")
-        saturation_min, saturation_max = np.min(hsv_values[:, 1]), np.max(hsv_values[:, 1])
-        value_min, value_max = np.min(hsv_values[:, 2]), np.max(hsv_values[:, 2])
+        saturation_min, saturation_max = np.min(hsv_values[:, 1])-20, np.max(hsv_values[:, 1])+20
+        value_min, value_max = np.min(hsv_values[:, 2])-20, np.max(hsv_values[:, 2])+20
 
         # Ensure that the minimum and maximum values are within the valid HSV range
         self.hsv_min_max[0, 0] = max(0, hue_min - cal_params.hue_tolerance)
@@ -137,7 +138,7 @@ def main():
         if key == ord('q'):
             cancel = True
             break
-        elif key == ord('n') or hsv_values_red.hsv_values_idx >= 10:    # collect maximum 10 values
+        elif key == ord('n') or hsv_values_red.hsv_values_idx >= 10:  # collect maximum 10 values
             break
 
     # save hsv values range to npy file

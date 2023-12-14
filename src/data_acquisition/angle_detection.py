@@ -25,7 +25,6 @@ cv2.destroyAllWindows()
 """
 
 
-
 def norm_vector(vector):
     """
     Returns the normalized version of the input vector.
@@ -170,6 +169,7 @@ def get_center_position(contours):
         found = True
     return position, found, contour_id
 
+
 """
 def get_center_position_by_template(frame):
     Computes the center of the contour that is searched for.
@@ -199,7 +199,6 @@ def get_center_position_by_template(frame):
     else:
         return red_center, False, green_center, False
 """
-
 
 
 class AngleDetector:
@@ -262,6 +261,7 @@ class AngleDetector:
     visualize(vis_text=True, vis_contours=True, vis_vectors=True)
         Visualizes the live results of angle detection.
     """
+
     def __init__(self, definition=0):
         importlib.reload(detection_params)  # reload parameter file in case of changes due to calibration
 
@@ -454,15 +454,16 @@ class AngleDetector:
                     cv2.line(self.visualization, self.pos_A, self.pos_B, (255, 0, 0), thickness=1, lineType=cv2.LINE_AA)
                     # draw reference axis
                     cv2.line(self.visualization, self.pos_A, self.pos_A + get_axis_visu(self.vec_ref_1), (0, 255, 0),
-                            lineType=cv2.LINE_AA, thickness=1)
+                             lineType=cv2.LINE_AA, thickness=1)
                     # draw angle visu
                     if check_side(self.pos_A, self.pos_A + (0, 100), self.pos_A + self.vec_ref_1) == (-1 | 0):
                         angular_offset = np.rad2deg(calc_angle(np.array((0, 1)), detection_params.vec_ref_1))
                     else:
                         angular_offset = -np.rad2deg(calc_angle(np.array((0, 1)), detection_params.vec_ref_1))
                     start_angle = 90 - angular_offset
-                    cv2.ellipse(self.visualization, self.pos_A, (45, 45), 0, start_angle, start_angle - np.rad2deg(self.angle_1),
-                               (0, 255, 0))  # angle ellipse
+                    cv2.ellipse(self.visualization, self.pos_A, (45, 45), 0, start_angle,
+                                start_angle - np.rad2deg(self.angle_1),
+                                (0, 255, 0))  # angle ellipse
             else:
                 label11 = "NaN"
                 label12 = "NaN"
@@ -481,16 +482,17 @@ class AngleDetector:
                     # distinguish by chosen definition
                     if self.definition == 0:  # relative definition
                         # draw reference axis
-                        cv2.line(self.visualization, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2), (0, 255, 0),
+                        cv2.line(self.visualization, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2),
+                                 (0, 255, 0),
                                  lineType=cv2.LINE_AA, thickness=1)
                         # draw angle visu
                         cv2.ellipse(self.visualization, self.pos_B, (45, 45), 0, 90 - np.rad2deg(self.angle_1),
-                                   90 - np.rad2deg(self.angle_1) - np.rad2deg(self.angle_2), (0, 255, 0))
+                                    90 - np.rad2deg(self.angle_1) - np.rad2deg(self.angle_2), (0, 255, 0))
                     elif self.definition == 1:  # absolute definition
                         # draw reference axis
                         cv2.line(self.visualization, self.pos_B, self.pos_B + get_axis_visu(self.vec_ref_2),
-                                (0, 255, 0), lineType=cv2.LINE_AA,
-                                thickness=1)
+                                 (0, 255, 0), lineType=cv2.LINE_AA,
+                                 thickness=1)
                         # draw angle visu
                         if check_side(self.pos_B, self.pos_B + (0, 100), self.pos_B + self.vec_ref_2) == (-1 | 0):
                             angular_offset = np.rad2deg(calc_angle(np.array((0, 1)), self.vec_ref_2))
@@ -498,7 +500,7 @@ class AngleDetector:
                             angular_offset = -np.rad2deg(calc_angle(np.array((0, 1)), self.vec_ref_2))
                         start_angle = 90 - angular_offset
                         cv2.ellipse(self.visualization, self.pos_B, (45, 45), 0, start_angle,
-                                   start_angle - np.rad2deg(self.angle_2), (0, 255, 0))
+                                    start_angle - np.rad2deg(self.angle_2), (0, 255, 0))
             else:
                 label21 = "NaN"
                 label22 = "NaN"
@@ -509,21 +511,29 @@ class AngleDetector:
                 cv2.rectangle(self.visualization, (0, 0), (235, 80), (255, 255, 255), -1)
 
                 # splitting in multiple function calls to achieve fixed positions (tabular)
-                cv2.putText(self.visualization, "angle_1", (2, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "angle_1", (2, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
+                            cv2.LINE_AA)
                 cv2.putText(self.visualization, "=", (79, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-                cv2.putText(self.visualization, label11, (102, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, label11, (102, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
+                            cv2.LINE_AA)
 
-                cv2.putText(self.visualization, "velocity_1", (2, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "velocity_1", (2, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
+                            cv2.LINE_AA)
                 cv2.putText(self.visualization, "=", (79, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-                cv2.putText(self.visualization, label12, (102, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, label12, (102, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
+                            cv2.LINE_AA)
 
-                cv2.putText(self.visualization, "angle_2", (2, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "angle_2", (2, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
+                            cv2.LINE_AA)
                 cv2.putText(self.visualization, "=", (79, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-                cv2.putText(self.visualization, label21, (102, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, label21, (102, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
+                            cv2.LINE_AA)
 
-                cv2.putText(self.visualization, "velocity_2", (2, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, "velocity_2", (2, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
+                            cv2.LINE_AA)
                 cv2.putText(self.visualization, "=", (79, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-                cv2.putText(self.visualization, label22, (102, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(self.visualization, label22, (102, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
+                            cv2.LINE_AA)
 
             # draw found center position of contours
             if vis_vectors:
@@ -569,6 +579,7 @@ class AngleBuffer:
         calc_velocity()
             Calculates the angular velocity based two angle values and corresponding timestamps.
         """
+
     def __init__(self):
         self.timestamps = np.zeros(2)
         self.angles = np.zeros(2)

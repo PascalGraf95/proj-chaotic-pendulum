@@ -1,13 +1,13 @@
-from camera_controller import IDSCameraController
+from src.data_acquisition.camera_controller import IDSCameraController
 import os.path
 import numpy as np
-from angle_detection import AngleDetector
+from src.data_acquisition.angle_detection import AngleDetector
 
 
 def main():
     # initialize camera and angle detector object
-    camera = IDSCameraController(param_file=r"../../CameraParameters/cp_AngleDetection.ini")
-    detection = AngleDetector(camera, definition=0)
+    camera = IDSCameraController(param_file=r"../../CameraParameters/cp_230809_AngleDetection.ini")
+    detection = AngleDetector()
 
     # initialize variables for counting frames and storing reference values
     frame_count = 0
@@ -23,8 +23,12 @@ def main():
             camera.close_camera_connection()
             raise RuntimeError(f"Reference points not found after {frame_count} frames. Check conditions.")
 
+        frame = camera.capture_image()
+
+        warped_frame = detection.warp_image(frame, already_warped=False)
+
         # use angle detection method to find positions of coloured dots
-        detection.get_angle()
+        detection.get_angle(frame=warped_frame)
 
         # calculate vector between C and B
         vec_bc = detection.pos_C - detection.pos_B

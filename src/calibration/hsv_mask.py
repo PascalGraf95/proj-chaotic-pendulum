@@ -4,14 +4,13 @@ import tkinter as tk
 from tkinter import Scale, Button
 import os
 
-
-
 # Load an image
-image_directory = r'A:\Arbeit\Github\proj-chaotic-pendulum\ExtractedFrames\2023-08-09_14-22-53_DemoFolder'
+image_directory = r'C:\Users\Marco\dev\backups\2023-08-11_14-29-45_DemoFolder'
 image_paths = os.listdir(image_directory)
 current_idx = 0
 original_img = cv2.imread(os.path.join(image_directory, image_paths[0]))
 hsv_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2HSV)
+
 
 def update_mask(lower, upper):
     global original_img

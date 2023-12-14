@@ -1,8 +1,9 @@
+import cv2
 import cv2 as cv
 import os.path
 import numpy as np
 import calibration_params as cal_params
-from camera_controller import IDSCameraController
+from src.data_acquisition.camera_controller import IDSCameraController
 
 
 class WarpMatrixCalculator:
@@ -19,11 +20,12 @@ class WarpMatrixCalculator:
     get_matrix()
         Calculates the warp matrix based on the detected ArUco markers in the captured video stream.
     """
+
     def __init__(self):
         # initialize camera with marker detection parameter file
         self.camera = IDSCameraController(param_file=r"../../CameraParameters/cp_DetectMarker.ini")
 
-        #create file path for saving the calibration data
+        # create file path for saving the calibration data
         if not os.path.exists(r"../../CalibrationData"):
             os.makedirs(r"../../CalibrationData")
 
@@ -42,6 +44,11 @@ class WarpMatrixCalculator:
         while True:
             frame_count += 1
             frame = self.camera.capture_image()
+
+            # resized = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+            # cv2.imshow("Ttiel", resized)
+            # cv2.waitKey(0)
+
             corners, ids, _ = cv.aruco.detectMarkers(frame, cal_params.aruco_dict, parameters=cal_params.aruco_params)
             if contains_zero_to_three(ids):
                 break

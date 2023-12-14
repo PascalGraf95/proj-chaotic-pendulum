@@ -2,7 +2,7 @@ import os
 import numpy as np
 from src.calibration import calibration_params
 
-overwrite_hsv_parameters = True
+overwrite_hsv_parameters = False
 
 # Parameter file used for storing/loading the parameters for the angle detection
 

@@ -8,6 +8,7 @@ import os
 import cv2
 from matplotlib.collections import LineCollection
 
+
 def main(path):
     # create timestamp for file names
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -56,8 +57,8 @@ def main(path):
         ax2.set_xlabel('Time in s')
         ax2.set_ylabel('Angle in rad')
         ax2.grid('on')
-        ax2.set_xlim([camera.timestamp-3, camera.timestamp+3])#camera.log_file['Time'].max()])
-        ax2.set_ylim([-math.pi-0.2, math.pi+0.2])
+        ax2.set_xlim([camera.timestamp - 3, camera.timestamp + 3])  # camera.log_file['Time'].max()])
+        ax2.set_ylim([-math.pi - 0.2, math.pi + 0.2])
 
         ax3.scatter(x, y2, color='red', marker='.')
         ax3.plot(x, y2_line, color='red')
@@ -65,8 +66,8 @@ def main(path):
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Angle in rad')
         ax3.grid('on')
-        ax3.set_xlim([camera.timestamp-3, camera.timestamp+3])#camera.log_file['Time'].max()])
-        ax3.set_ylim([-math.pi-0.2, math.pi+0.2])
+        ax3.set_xlim([camera.timestamp - 3, camera.timestamp + 3])  # camera.log_file['Time'].max()])
+        ax3.set_ylim([-math.pi - 0.2, math.pi + 0.2])
 
         # Adjust spacing between subplots
         # plt.tight_layout()

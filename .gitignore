@@ -126,6 +126,7 @@ fabric.properties
 [Ss]cripts
 pyvenv.cfg
 .venv
+.venv/share
 pip-selfcheck.json
 
 # End of https://www.toptal.com/developers/gitignore/api/venv,pycharm
@@ -133,3 +134,5 @@ pip-selfcheck.json
 *.jpg 
 *.csv 
 *.pkl
+*.xml
+*.iml
