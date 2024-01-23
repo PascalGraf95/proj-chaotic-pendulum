@@ -2,12 +2,12 @@ import numpy as np
 import tensorflow as tf
 import os
 from typing import List, Dict
+from keras import backend as K
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, BatchNormalization, Dropout
+from tensorflow.keras.layers import LSTM, Dense, BatchNormalization, Dropout, Bidirectional
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 import matplotlib.pyplot as plt
 import argparse
@@ -26,7 +26,7 @@ def custom_mse_modulo(y_true, y_pred):
     return mse
 
 
-def load_data_from_csv(path):
+def load_data_from_csv(path: str):
     return pd.read_csv(path, delimiter=",")
 
 
@@ -39,7 +39,7 @@ def get_file_names(folder_path: str) -> List:
     return [os.path.join(folder_path, file) for file in os.listdir(folder_path)]
 
 
-def filter_and_preprocess_data_multiple_series(folder_path, sequence_length, output_length):
+def filter_and_preprocess_data_multiple_series(folder_path: str, sequence_length: int, output_length: int):
     file_names = get_file_names(folder_path)
 
     x_list = []
@@ -63,7 +63,7 @@ def filter_and_preprocess_data_multiple_series(folder_path, sequence_length, out
             cos_angle2 = data["Cos_Angle2"].to_numpy()
 
             numpy_data = np.column_stack((sin_angle1, cos_angle1, sin_angle2, cos_angle2))
-            print("DATA SHAPE: {}".format(numpy_data.shape))
+            # print("DATA SHAPE: {}".format(numpy_data.shape))
 
             x_sample = numpy_data[:sequence_length]
             y_sample = numpy_data[sequence_length:sequence_length + output_length].flatten()
@@ -104,22 +104,30 @@ class RNNModel:
         x = model_input
 
         for l in range(layers):
-            x = LSTM(units[l], activation='relu', return_sequences=(first_lstm and layers > 1))(x)
+            x = Bidirectional(LSTM(units[l], activation='relu', return_sequences=(first_lstm and layers > 1)))(x)
             x = BatchNormalization()(x)
             x = Dropout(0.25)(x)
             first_lstm = False
+
         x = Dense(2 * units[0], activation='relu')(x)
         model_output = Dense(self.input_shape * outputs)(x)
 
         self.model = keras.Model(inputs=model_input, outputs=model_output)
         self.model.summary()
-        self.model.compile(optimizer='adam', loss='mse')
+
+        def r2_metric(y_true, y_pred):
+            SS_res = K.sum(K.square(y_true - y_pred))
+            SS_tot = K.sum(K.square(y_true - K.mean(y_true)))
+            r2 = 1 - SS_res / (SS_tot + K.epsilon())
+            return r2
+
+        self.model.compile(optimizer='adam', loss='mse', metrics=['mse'])
 
     def train_model(self, x_train, x_val, y_train, y_val, epochs=100, batch_size=32):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_rnn_model")
         path_checkpoint = f"./model_checkpoints/{timestamp}_rnn_model.h5"
         path_tensorboard = f"./logs/{timestamp}_rnn_model"
-        early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=50)
+        early_stopping = keras.callbacks.EarlyStopping(monitor="val_loss", patience=15)
 
         checkpoint = keras.callbacks.ModelCheckpoint(
             monitor="val_loss",
@@ -161,21 +169,27 @@ class RNNModel:
             time_array = np.array(range(sequence_length))
             y_pred = self.model.predict(np.expand_dims(x_sample, axis=0)).reshape(-1, 4)
             y_sample = y_sample.reshape(-1, 4)
-            axes[0].scatter(time_array, self.reconstruct_radian(x_sample[:, 0], x_sample[:, 1]), label="Input Sequence")
-            axes[0].scatter(list(range(sequence_length, sequence_length + output_length)), self.reconstruct_radian(y_pred[:, 0], y_pred[:, 1]),
-                            label="Prediction")
-            axes[0].scatter(list(range(sequence_length, sequence_length + output_length)), self.reconstruct_radian(y_sample[:, 0], y_sample[:, 1]),
-                            label="Ground Truth")
+            axes[0].plot(time_array, self.reconstruct_radian(x_sample[:, 0], x_sample[:, 1]), label="Input Sequence",
+                         linestyle='-', marker='o')
+            axes[0].plot(list(range(sequence_length, sequence_length + output_length)),
+                         self.reconstruct_radian(y_pred[:, 0], y_pred[:, 1]),
+                         label="Prediction", linestyle='-', marker='o')
+            axes[0].plot(list(range(sequence_length, sequence_length + output_length)),
+                         self.reconstruct_radian(y_sample[:, 0], y_sample[:, 1]),
+                         label="Ground Truth", linestyle='-', marker='o')
             axes[0].set_title("Arm 1")
             axes[0].set_ylim([-3.2, 3.2])
             axes[0].legend()
             axes[0].grid(visible=True)
 
-            axes[1].scatter(time_array, self.reconstruct_radian(x_sample[:, 2], x_sample[:, 3]), label="Input Sequence")
-            axes[1].scatter(list(range(sequence_length, sequence_length + output_length)), self.reconstruct_radian(y_pred[:, 2], y_pred[:, 3]),
-                            label="Prediction")
-            axes[1].scatter(list(range(sequence_length, sequence_length + output_length)), self.reconstruct_radian(y_sample[:, 2], y_sample[:, 3]),
-                            label="Ground Truth")
+            axes[1].plot(time_array, self.reconstruct_radian(x_sample[:, 2], x_sample[:, 3]), label="Input Sequence",
+                         linestyle='-', marker='o')
+            axes[1].plot(list(range(sequence_length, sequence_length + output_length)),
+                         self.reconstruct_radian(y_pred[:, 2], y_pred[:, 3]),
+                         label="Prediction", linestyle='-', marker='o')
+            axes[1].plot(list(range(sequence_length, sequence_length + output_length)),
+                         self.reconstruct_radian(y_sample[:, 2], y_sample[:, 3]),
+                         label="Ground Truth", linestyle='-', marker='o')
             axes[1].set_title("Arm 2")
             axes[1].set_ylim([-3.2, 3.2])
             axes[1].legend()
@@ -194,10 +208,10 @@ if __name__ == '__main__':
 
     # Training Parameters
     parser.add_argument('-seq_len', '--sequence_length', default=50, type=int, help="", required=False)
-    parser.add_argument('-out_len', '--output_length', default=200, type=int, help="", required=False)
+    parser.add_argument('-out_len', '--output_length', default=100, type=int, help="", required=False)
     parser.add_argument('-ov', '--overlap', default=1, type=int, help="", required=False)
     parser.add_argument('-bs', '--batch_size', default=32, type=int, help="", required=False)
-    parser.add_argument('-ep', '--epochs', default=200, type=int, help="", required=False)
+    parser.add_argument('-ep', '--epochs', default=300, type=int, help="", required=False)
 
     # Network
     parser.add_argument('-l', '--layers', default=2, type=int, help="", required=False)

@@ -5,7 +5,7 @@ from tkinter import Scale, Button
 import os
 
 # Load an image
-image_directory = r'C:\Users\Marco\dev\backups\2023-08-11_14-29-45_DemoFolder'
+image_directory = r'C:\Users\Marco\dev\git\DataRecords\2024-01-09_14-02-09_DemoFolder'
 image_paths = os.listdir(image_directory)
 current_idx = 0
 original_img = cv2.imread(os.path.join(image_directory, image_paths[0]))

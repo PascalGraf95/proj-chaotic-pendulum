@@ -36,8 +36,8 @@ def plot_time_series(time_series, value1, value2, value3, value4):
     plt.figure(figsize=(12, 5), dpi=80, linewidth=10)
 
     plt.subplot(2, 1, 1)
-    plt.plot(time_series['Time'], time_series[value1], label=value1)
-    plt.plot(time_series['Time'], time_series[value2], label=value2)
+    plt.plot(time_series['Time'], time_series[value1], label=value1, linestyle='-')
+    plt.plot(time_series['Time'], time_series[value2], label=value2, linestyle='-')
     plt.title('Chaotic pendulum - Angles')
     plt.xlabel('Seconds', fontsize=14)
     plt.ylabel('Degree', fontsize=14)
@@ -45,8 +45,8 @@ def plot_time_series(time_series, value1, value2, value3, value4):
 
     # Plotting the second set of graphs
     plt.subplot(2, 1, 2)
-    plt.plot(time_series['Time'], time_series[value3], label=value3)
-    plt.plot(time_series['Time'], time_series[value4], label=value4)
+    plt.plot(time_series['Time'], time_series[value3], label=value3, linestyle='-')
+    plt.plot(time_series['Time'], time_series[value4], label=value4, linestyle='-')
     plt.title('Chaotic pendulum - Angular Velocities')
     plt.xlabel('Seconds', fontsize=14)
     plt.ylabel('Degree', fontsize=14)
@@ -79,7 +79,6 @@ def cut_irrelevant_data(time_series):
 
 
 def prepare_time_series(time_series: pd.DataFrame):
-
     plot_time_series(time_series, 'Angle1', 'Angle2', 'AngularVel1', 'AngularVel2')
     # Remove rows with NaN values
     time_series.dropna(inplace=True)
@@ -103,7 +102,7 @@ def load_data_from_csv(path):
 
 
 def main():
-    path = r'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\raw\3.csv'
+    path = r'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\work_dir\data.csv'
 
     # Data loading
     data = prepare_time_series(load_data_from_csv(path))
@@ -131,13 +130,15 @@ def main():
 if __name__ == "__main__":
 
     # main()
-    for number in range(1, 94):
-        print(number)
+    for number in range(1, 461):
+        # print(number)
         path = fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\DataRecords\{number}\{number}.csv'
-
+        print(number)
         # Data loading
         data = prepare_time_series(load_data_from_csv(path))
         df = pd.DataFrame(data)
 
         # Save the DataFrame to a CSV file
-        df.to_csv(fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\processed\{number}.csv', index=False)
+        df.to_csv(
+            fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\processed\{number}.csv',
+            index=False)

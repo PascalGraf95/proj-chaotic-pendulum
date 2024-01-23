@@ -13,7 +13,7 @@ def main():
     # get_warp_matrix.main()
 
     # Start script for collecting hsv values of coloured dots
-    get_hsv_masks.main()
+    # get_hsv_masks.main()
 
     # User instruction to ensure that the pendulum no longer moves during alignment calibration
     blank = np.zeros((50, 550, 3), np.uint8)
@@ -33,7 +33,7 @@ def main():
 
     # Start visualization of detection so that the user can check the calibration result
     # Initialize camera
-    camera = IDSCameraController(param_file=r"../../CameraParameters/cp_AngleDetection.ini")
+    camera = IDSCameraController(param_file=r"../CameraParameters/cp_AngleDetection.ini")
     # Initialize AngleDetector object,
     measurement = AngleDetector()
 

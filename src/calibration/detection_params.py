@@ -2,7 +2,7 @@ import os
 import numpy as np
 from src.calibration import calibration_params
 
-overwrite_hsv_parameters = False
+overwrite_hsv_parameters = True
 
 # Parameter file used for storing/loading the parameters for the angle detection
 
@@ -11,8 +11,8 @@ warped_frame_side = calibration_params.warped_frame_side  # [pixel]
 
 # Reference axis calculated with alignment calibration.
 # If no file can be found a default value is used (vertical reference axis) [numpy array]
-if os.path.exists("../../CalibrationData/ReferenceAxis.npy"):
-    reference_axis = np.load('../../CalibrationData/ReferenceAxis.npy')
+if os.path.exists("../CalibrationData/ReferenceAxis.npy"):
+    reference_axis = np.load('../CalibrationData/ReferenceAxis.npy')
 else:
     reference_axis = np.array(([int(warped_frame_side / 2), int(warped_frame_side / 2)], [0, warped_frame_side / 2]),
                               dtype=int)
@@ -26,8 +26,8 @@ vec_ref_1 = reference_axis[1]  # [x,y in pixel]
 
 # Warp matrix calculated during calibration process.
 # If no file can be found a default matrix is used. [numpy array]
-if os.path.exists("../../CalibrationData/WarpMatrix.npy"):
-    warp_matrix = np.load('../../CalibrationData/WarpMatrix.npy')
+if os.path.exists("../CalibrationData/WarpMatrix.npy"):
+    warp_matrix = np.load('../CalibrationData/WarpMatrix.npy')
 else:
     warp_matrix = np.array([[8.58769289e-01, -1.08283228e-02, -3.82004069e+02],
                             [2.48709061e-03, 8.58046261e-01, -8.09075447e+01],
@@ -41,10 +41,10 @@ if overwrite_hsv_parameters:
     # Red
     # 0, 79, 188
     # 13, 225, 255
-    red_min = np.array([0, 79, 188])
-    red_max = np.array([13, 225, 255])
-elif os.path.exists("../../CalibrationData/HsvMinMaxRed.npy"):
-    red_min_max = np.load('../../CalibrationData/HsvMinMaxRed.npy')
+    red_min = np.array([0, 53, 139])
+    red_max = np.array([179, 225, 255])
+elif os.path.exists("../CalibrationData/HsvMinMaxRed.npy"):
+    red_min_max = np.load('../CalibrationData/HsvMinMaxRed.npy')
     red_min = red_min_max[0, :]
     red_max = red_min_max[1, :]
 else:
@@ -59,10 +59,10 @@ if overwrite_hsv_parameters:
     # Green
     # 50, 55, 110
     # 108 180 218
-    green_min = np.array([50, 55, 110])
-    green_max = np.array([108, 180, 218])
-elif os.path.exists("../../CalibrationData/HsvMinMaxGreen.npy"):
-    green_min_max = np.load('../../CalibrationData/HsvMinMaxGreen.npy')
+    green_min = np.array([42, 49, 75])
+    green_max = np.array([84, 255, 180])
+elif os.path.exists("../CalibrationData/HsvMinMaxGreen.npy"):
+    green_min_max = np.load('../CalibrationData/HsvMinMaxGreen.npy')
     green_min = green_min_max[0, :]
     green_max = green_min_max[1, :]
 else:
@@ -73,8 +73,10 @@ else:
 
 # Range for the filtering of the found contours by area size.
 # Calculated with dependency to size of warped frame. [pixel^2]
-area_min = 0.00145 * pow(warped_frame_side, 2)
-area_max = 0.00200 * pow(warped_frame_side, 2)
+# area_min = 0.00145 * pow(warped_frame_side, 2)
+# area_max = 0.00200 * pow(warped_frame_side, 2)
+area_min = 1200
+area_max = 2000
 print("MIN CIRCLE AREA: {:.2f}, MAX CIRCLE AREA: {:.2f}".format(area_min, area_max))
 
 # Length of the axes used for visualization [pixel]

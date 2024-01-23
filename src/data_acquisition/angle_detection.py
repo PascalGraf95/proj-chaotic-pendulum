@@ -301,7 +301,7 @@ class AngleDetector:
         self.visualization = frame_warped
         return frame_warped
 
-    def get_contours(self, frame):
+    def get_contours(self, frame, visualize=False):
         """
         Filters the captured frame for red and green colour and extracts the contours separately
 
@@ -323,6 +323,12 @@ class AngleDetector:
         mask_red = cv2.inRange(frame_hsv, detection_params.red_min, detection_params.red_max)
         mask_green = cv2.inRange(frame_hsv, detection_params.green_min, detection_params.green_max)
 
+        # cv2.imshow("mask_red", mask_red)
+        # cv2.waitKey(0)
+        #
+        # cv2.imshow("mask_green", mask_green)
+        # cv2.waitKey(0)
+
         # Find contours for red and green shapes in frame
         self.contours_red, _ = cv2.findContours(mask_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         self.contours_green, _ = cv2.findContours(mask_green, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
@@ -342,16 +348,15 @@ class AngleDetector:
         self.pos_B, found_B, self.contour_red_id = get_center_position(self.contours_red)
         self.pos_C, found_C, self.contour_green_id = get_center_position(self.contours_green)
 
-        """
-        if len(self.contours_red) > 10 or len(self.contours_green) > 10:
-            print("GREEN CONTOURS: {}, RED CONTOURS: {}".format(len(self.contours_green), len(self.contours_red)))
-            cv2.imshow("IMAGE", frame)
-            cv2.waitKey(0)
-        if not found_B or not found_C:
-            print("DIDN'T FIND CIRCLE")
-            cv2.imshow("IMAGE", frame)
-            cv2.waitKey(0)
-        """
+
+        # if len(self.contours_red) > 10 or len(self.contours_green) > 10:
+        #     print("GREEN CONTOURS: {}, RED CONTOURS: {}".format(len(self.contours_green), len(self.contours_red)))
+        #     cv2.imshow("IMAGE1", frame)
+        #     cv2.waitKey(0)
+        # if not found_B or not found_C:
+        #     print("DIDN'T FIND CIRCLE")
+        #     cv2.imshow("IMAGE2", frame)
+        #     cv2.waitKey(0)
         # self.pos_B, found_B, self.pos_C, found_C = get_center_position_by_template(frame)
 
         # Calculate angle of first arm

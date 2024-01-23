@@ -34,8 +34,8 @@ class HSVCollector:
         self.hsv_values = np.empty((10, 3), dtype=np.uint8)
         self.hsv_values_idx = 0
         self.hsv_min_max = np.zeros((2, 3), dtype=int)
-        if not os.path.exists(r"../../CalibrationData"):
-            os.makedirs(r"../../CalibrationData")
+        if not os.path.exists(r".../CalibrationData"):
+            os.makedirs(r"../CalibrationData")
 
     def collect_hsv_values(self, event, x, y, flags, params):
         """
@@ -74,12 +74,16 @@ class HSVCollector:
         """
         # Calculate the minimum and maximum values for each component
         hsv_values = np.array(self.hsv_values[:self.hsv_values_idx])
-        hue_min, hue_max = np.min(hsv_values[:, 0])-20, np.max(hsv_values[:, 0])+20
+        hue_min, hue_max = np.min(hsv_values[:, 0]), np.max(hsv_values[:, 0])
+        # hue_min, hue_max = np.min(hsv_values[:, 0]) - 20, np.max(hsv_values[:, 0]) + 20
         if hue_max - hue_min > 120:
             print("WARNING: Collected values might span across the boundary of the HSV colour space."
                   "This may lead to performance issues. Check debug scripts.")
-        saturation_min, saturation_max = np.min(hsv_values[:, 1])-20, np.max(hsv_values[:, 1])+20
-        value_min, value_max = np.min(hsv_values[:, 2])-20, np.max(hsv_values[:, 2])+20
+        saturation_min, saturation_max = np.min(hsv_values[:, 1]), np.max(hsv_values[:, 1])
+        value_min, value_max = np.min(hsv_values[:, 2]), np.max(hsv_values[:, 2])
+
+        # saturation_min, saturation_max = np.min(hsv_values[:, 1]) - 20, np.max(hsv_values[:, 1]) + 20
+        # value_min, value_max = np.min(hsv_values[:, 2]) - 20, np.max(hsv_values[:, 2]) + 20
 
         # Ensure that the minimum and maximum values are within the valid HSV range
         self.hsv_min_max[0, 0] = max(0, hue_min - cal_params.hue_tolerance)
@@ -92,7 +96,7 @@ class HSVCollector:
 
 def main():
     # create instance of camera
-    camera = IDSCameraController(param_file=r"../../CameraParameters/cp_AngleDetection.ini")
+    camera = IDSCameraController(param_file=r"../CameraParameters/cp_AngleDetection.ini")
 
     # create instances of HSV collector for red and green
     hsv_values_red = HSVCollector()

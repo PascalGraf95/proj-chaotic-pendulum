@@ -17,7 +17,7 @@ import argparse
 # ---------------------------------------------------------------------------------------------------------------------
 
 
-def main(video_path, record=False, live_feed=True, detect=False, predict=False):
+def main(video_path, record=False, live_feed=True, detect=False):
     if not video_path:
         # Initialize camera, param_file = set camera parameters with .ini file
         camera = IDSCameraController(param_file=r"../CameraParameters/cp_230809_AngleDetection.ini")
@@ -92,15 +92,6 @@ def main(video_path, record=False, live_feed=True, detect=False, predict=False):
                 # Note: Use only in combination with get_angle() and if needed get_angular_vel() function
                 data_rec.write_datarow(angles, angular_velocities, measurement.timestamp)
 
-            # if predict:
-            #     # Extract frames from visualization, passing parameter: AngleDetector-Object
-            #     # Note: Use only in combination with visualize() function
-            #     frame_extr.save_latest_frame(visualization)
-            #     # takes about 5-6 ms of time
-            #     # Record data of active measurement, passing parameter: AngleDetector-Object
-            #     # Note: Use only in combination with get_angle() and if needed get_angular_vel() function
-            #     data_rec.write_datarow(angles, angular_velocities, measurement.timestamp)
-
             if live_feed:
                 cv2.imshow("Live Image", visualization)
                 # takes about 3 ms
@@ -139,10 +130,7 @@ if __name__ == '__main__':
                         help="", required=False)
     parser.add_argument('-liv', '--live_feed', action=argparse.BooleanOptionalAction, default=False,
                         help="", required=False)
-    parser.add_argument('-pre', '--predict', action=argparse.BooleanOptionalAction, default=False,
-                        help="", required=False)
     parser.add_argument('-vp', '--video_path', type=str, default=None, required=False)
 
     args = parser.parse_args()
-    main(video_path=args.video_path, record=args.record, detect=args.detect, live_feed=args.live_feed,
-         predict=args.predict)
+    main(video_path=args.video_path, record=args.record, detect=args.detect, live_feed=args.live_feed)
