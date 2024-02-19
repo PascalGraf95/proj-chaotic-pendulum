@@ -15,6 +15,11 @@ import tensorboard
 import time
 import datetime
 
+'''
+Script to train model only from beginning of time series and a specific length, with no overlap. 
+Data is in coordinate format
+'''
+
 
 # Custom MSE loss function with respect to modulo 1
 def custom_mse_modulo(y_true, y_pred):
@@ -52,6 +57,7 @@ def filter_and_preprocess_data_multiple_series(folder_path: str, sequence_length
     for file in file_names:
         data = load_data_from_csv(file)
         if len(data) >= sequence_length + output_length:
+            # Convert both angles in x and y coordinates
             data['x1'] = center[0] + arm_length * np.sin(data['Angle1'])
             data['y1'] = center[1] - arm_length * np.cos(data['Angle1'])
 
@@ -210,7 +216,7 @@ class RNNModel:
         print(f"x1: {mse0} y1: {mse1} x2: {mse2} y2: {mse3} overall: {mse}")
 
     def evaluate_model_trajectory(self, x_test, y_test):
-        # Evaluate the model
+        # Evaluate the model by plotting the trajectory movement
         loss = self.model.evaluate(x_test, y_test)
         print("Test Loss:", loss)
 

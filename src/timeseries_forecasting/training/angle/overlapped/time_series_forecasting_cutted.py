@@ -15,6 +15,11 @@ import tensorboard
 import time
 import datetime
 
+'''
+Script to train model completely with overlap. 
+Data is in angle format
+'''
+
 
 # Custom MSE loss function with respect to modulo 1
 def custom_mse_modulo(y_true, y_pred):
@@ -47,7 +52,7 @@ def filter_and_preprocess_data_multiple_series(folder_path: str, sequence_length
     for file in file_names:
         data = load_data_from_csv(file)
         if len(data) >= sequence_length + output_length:
-            # Convert angles to sine and cosine values
+            # Convert angles to sine and cosine values for better trainings results
             data['Sin_Angle1'] = np.sin(data['Angle1'])
             data['Cos_Angle1'] = np.cos(data['Angle1'])
 
