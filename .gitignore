@@ -134,5 +134,4 @@ pip-selfcheck.json
 *.jpg 
 *.csv 
 *.pkl
-*.xml
 *.iml

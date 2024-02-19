@@ -79,20 +79,13 @@ def cut_irrelevant_data(time_series):
 
 
 def prepare_time_series(time_series: pd.DataFrame):
-    plot_time_series(time_series, 'Angle1', 'Angle2', 'AngularVel1', 'AngularVel2')
+    # plot_time_series(time_series, 'Angle1', 'Angle2', 'AngularVel1', 'AngularVel2')
     # Remove rows with NaN values
     time_series.dropna(inplace=True)
 
-    # Filter rows where both 'AngularVel1' and 'AngularVel2' are not nearly zero
-    # time_series_preprocessed = time_series[
-    #     (time_series['AngularVel1'] > 0.5) | (time_series['AngularVel1'] < -0.5) |
-    #     (time_series['AngularVel2'] > 0.5) | (time_series['AngularVel2'] < -0.5) |
-    #     (time_series['Angle1'] > 0.01) | (time_series['Angle1'] < -0.01) |
-    #     (time_series['Angle2'] > 0.01) | (time_series['Angle2'] < -0.01)
-    #     ]
-    # time_series_preprocessed = time_series_preprocessed.iloc[4:]
-    # time_series_preprocessed = time_series_preprocessed.iloc[:-700]
-    plot_time_series(time_series, 'Angle1', 'Angle2', 'AngularVel1', 'AngularVel2')
+    # time_series = time_series.iloc[4:]
+
+    # plot_time_series(time_series, 'Angle1', 'Angle2', 'AngularVel1', 'AngularVel2')
     print(len(time_series))
     return time_series
 
@@ -102,16 +95,16 @@ def load_data_from_csv(path):
 
 
 def main():
-    path = r'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\work_dir\data.csv'
+    path = r'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\2024-02-15_20-49-19_rnn_model.csv'
 
     # Data loading
     data = prepare_time_series(load_data_from_csv(path))
 
     # Specify the columns you want to drop
-    columns_to_drop = ['AngularVel1', 'AngularVel2']
+    # columns_to_drop = ['AngularVel1', 'AngularVel2']
 
     # Use the drop method to remove the specified columns
-    data.drop(columns=columns_to_drop, inplace=True)
+    # data.drop(columns=columns_to_drop, inplace=True)
 
     # Convert angles to sine and cosine values
     data['Sin_Angle1'] = np.sin(data['Angle1'])
@@ -130,10 +123,9 @@ def main():
 if __name__ == "__main__":
 
     # main()
-    for number in range(1, 461):
-        # print(number)
-        path = fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\DataRecords\{number}\{number}.csv'
+    for number in range(1, 2952):
         print(number)
+        path = fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\DataRecords\{number}\{number}.csv'
         # Data loading
         data = prepare_time_series(load_data_from_csv(path))
         df = pd.DataFrame(data)

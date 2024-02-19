@@ -1,12 +1,10 @@
 from data_acquisition.camera_controller import IDSCameraController, ImageStreamController
 from data_acquisition.angle_detection import AngleDetector
-from data_acquisition.recording import VideoRecorder
 from data_acquisition.recording import DataRecorder
 from data_acquisition.recording import FrameRecorder
-import argparse
 
 
-def run_data_acquisition(pendulum_data: str, data_length: int, image_path: str, video_path: str):
+def run_data_acquisition(pendulum_data: str, data_length: int, video_path: str):
     """
     Run the data acquisition process to capture and record pendulum data.
 
@@ -29,18 +27,13 @@ def run_data_acquisition(pendulum_data: str, data_length: int, image_path: str, 
         camera = IDSCameraController(param_file=r"../CameraParameters/cp_230809_AngleDetection.ini")
     else:
         camera = ImageStreamController(video_path=video_path)
-
+    print("Start!")
     measurement = AngleDetector()
 
-    frame_extr = FrameRecorder(folder=image_path)
+    frame_extr = FrameRecorder()
 
     # DataRecorder to record measurement data, log_filename = set log filename
-    data_rec = DataRecorder(folder=image_path,
-                            timestamp=frame_extr.timestamp)
-
-    # Set default values for angles and their velocities
-    angles = [None, None]
-    angular_velocities = [None, None]
+    data_rec = DataRecorder(timestamp=frame_extr.timestamp)
 
     for _ in range(data_length + 20):
         frame = camera.capture_image()
@@ -53,10 +46,6 @@ def run_data_acquisition(pendulum_data: str, data_length: int, image_path: str, 
 
         angular_velocities = measurement.get_angular_vel()
 
-        visualization = measurement.visualize(vis_text=True, vis_contours=True,
-                                              vis_vectors=True, vis_timestamp=True)
-        frame_extr.save_latest_frame_specific_path(visualization)
-
         data_rec.write_datarow(angles, angular_velocities, measurement.timestamp)
 
         if camera.video_has_ended:
@@ -65,6 +54,7 @@ def run_data_acquisition(pendulum_data: str, data_length: int, image_path: str, 
     camera.close_camera_connection()
 
     data_rec.save_csv(csv_path=pendulum_data)
+    print("Done!")
 
 
 if __name__ == '__main__':

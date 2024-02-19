@@ -10,7 +10,7 @@ import numpy as np
 def main():
     print("Start system calibration.")
     # Calculate Warp Matrix
-    # get_warp_matrix.main()
+    get_warp_matrix.main()
 
     # Start script for collecting hsv values of coloured dots
     # get_hsv_masks.main()

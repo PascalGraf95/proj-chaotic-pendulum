@@ -77,7 +77,7 @@ else:
 # area_max = 0.00200 * pow(warped_frame_side, 2)
 area_min = 1200
 area_max = 2000
-print("MIN CIRCLE AREA: {:.2f}, MAX CIRCLE AREA: {:.2f}".format(area_min, area_max))
+# print("MIN CIRCLE AREA: {:.2f}, MAX CIRCLE AREA: {:.2f}".format(area_min, area_max))
 
 # Length of the axes used for visualization [pixel]
 visu_axis_length = 100

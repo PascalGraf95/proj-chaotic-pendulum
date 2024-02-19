@@ -112,7 +112,7 @@ def validate_data_quality(data: pd.DataFrame):
     nan_values_angle1 = data['Angle1'].isna().sum()
     nan_values_angle2 = data['Angle2'].isna().sum()
 
-    if nan_values_angle1 or nan_values_angle2 > threshold:
+    if nan_values_angle1 > threshold or nan_values_angle2 > threshold:
         raise GenerateAnimationExceptionQualityNotCorrect(
             "DataFrame quality is not good enough data contains out of to many NaN values. Try again")
 
