@@ -123,7 +123,7 @@ def main():
 if __name__ == "__main__":
 
     # main()
-    for number in range(1, 2952):
+    for number in range(0, 5045):
         print(number)
         path = fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\DataRecords\{number}\{number}.csv'
         # Data loading
