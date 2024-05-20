@@ -33,20 +33,78 @@ def generate_image(image_index2: int, y_true: np.ndarray, y_pred: np.ndarray, pr
 
 
 def run_image_generation_trajectory(ground_truth_output: np.array, prediction_output: np.array, prediction_path: str,
-                                    mse: float):
+                                    mse: float) -> None:
+    """
+    Run the image generation process for trajectory plots and save the output.
+
+    Parameters
+    ----------
+    ground_truth_output : np.array
+        Ground truth trajectory data.
+    prediction_output : np.array
+        Predicted trajectory data.
+    prediction_path : str
+        Path to save the generated image.
+    mse : float
+        Mean Squared Error associated with the trajectory.
+
+    Returns
+    -------
+    None
+    """
     image1 = plot_trajectory_by_angles(ground_truth_output)
     image2 = plot_trajectory_by_angles(prediction_output)
     plot_images_side_by_side(image1=image1, image2=image2, mse=mse,
-                             path=os.path.join(prediction_path, "trajectory.png"))
+                             path=os.path.join(prediction_path, "trajectory.jpg"))
 
 
-def draw_wide_rod(image, start, end, color, thickness):
+def draw_wide_rod(image: np.ndarray, start: tuple, end: tuple, color: tuple, thickness: int) -> None:
+    """
+    Draw a wide rod (line) on the input image between two points.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Input image.
+    start : tuple
+        Starting point (x, y) of the rod.
+    end : tuple
+        Ending point (x, y) of the rod.
+    color : tuple
+        Color of the rod as (B, G, R).
+    thickness : int
+        Thickness of the rod.
+
+    Returns
+    -------
+    None
+    """
     mid_point = ((start[0] + end[0]) // 2, (start[1] + end[1]) // 2)
     cv2.line(image, start, end, color, thickness=thickness, lineType=cv2.LINE_AA)
     cv2.circle(image, mid_point, thickness // 2, color, thickness=cv2.FILLED)
 
 
-def draw_past_dots(image, center, arm_length, past_values, dot_size):
+def draw_past_dots(image: np.ndarray, center: tuple, arm_length: int, past_values: np.ndarray, dot_size: int) -> None:
+    """
+    Draw past trajectory dots on the image around a center point.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Input image to draw on.
+    center : tuple
+        Center point (x, y) around which past dots will be drawn.
+    arm_length : int
+        Length of the arm.
+    past_values : np.ndarray
+        Array of past trajectory values.
+    dot_size : int
+        Size of the dots.
+
+    Returns
+    -------
+    None
+    """
     array_length = int(len(past_values) / 2)
     for i in range(array_length):
         cos_angle_1 = math.cos(past_values[i])
@@ -64,7 +122,20 @@ def draw_past_dots(image, center, arm_length, past_values, dot_size):
         cv2.circle(image, dest_position_arm_2, dot_size, (0, 255, 0), thickness=cv2.FILLED)
 
 
-def plot_trajectory_by_angles(angles):
+def plot_trajectory_by_angles(angles: np.ndarray) -> np.ndarray:
+    """
+    Generate and return an image representing trajectory based on input angles.
+
+    Parameters
+    ----------
+    angles : np.ndarray
+        Array of angles representing trajectory.
+
+    Returns
+    -------
+    np.ndarray
+        Generated image representing the trajectory.
+    """
     # Set up the image
     image_size = 1000
     image = np.zeros((image_size, image_size, 3), dtype=np.uint8)
@@ -100,7 +171,24 @@ def plot_trajectory_by_angles(angles):
     return image
 
 
-def plot_pendulum_visualization_by_angles(angle1: np.ndarray, angle2: np.ndarray, past_values: np.ndarray):
+def plot_pendulum_visualization_by_angles(angle1: np.ndarray, angle2: np.ndarray, past_values: np.ndarray) -> np.ndarray:
+    """
+    Generate and return an image visualizing a pendulum based on given angles and past values.
+
+    Parameters
+    ----------
+    angle1 : np.ndarray
+        First angle of the pendulum.
+    angle2 : np.ndarray
+        Second angle of the pendulum.
+    past_values : np.ndarray
+        Array of past trajectory values.
+
+    Returns
+    -------
+    np.ndarray
+        Generated visualization image of the pendulum.
+    """
     image = np.zeros((1000, 1000, 3), dtype=np.uint8)
     center = np.ones(2, dtype=np.uint8) * 500
     real_life_arm_length = 115  # in mm

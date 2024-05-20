@@ -131,7 +131,21 @@ pip-selfcheck.json
 
 # End of https://www.toptal.com/developers/gitignore/api/venv,pycharm
 
+### JupyterNotebooks ###
+# gitignore template for Jupyter Notebooks
+# website: http://jupyter.org/
+
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
+
 *.jpg 
 *.csv 
 *.pkl
 *.iml
+
+src/work_dir/prediction_data
+src/work_dir/real_images

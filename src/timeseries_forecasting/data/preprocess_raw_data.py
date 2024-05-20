@@ -3,9 +3,6 @@ from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
 import math
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-import torch
 
 
 # Function to convert radians to degrees
@@ -33,7 +30,7 @@ def apply_degree_conversion(time_series_preprocessed):
 
 def plot_time_series(time_series, value1, value2, value3, value4):
     # Plotting the first set of graphs
-    plt.figure(figsize=(12, 5), dpi=80, linewidth=10)
+    plt.figure(figsize=(24, 10), dpi=80, linewidth=10)
 
     plt.subplot(2, 1, 1)
     plt.plot(time_series['Time'], time_series[value1], label=value1, linestyle='-')

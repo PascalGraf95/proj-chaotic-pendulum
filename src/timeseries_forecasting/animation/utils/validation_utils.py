@@ -31,14 +31,14 @@ class GenerateAnimationExceptionModelFileNotFound(GenerateAnimationException):
     """Exception raised when the model file is not found."""
 
 
-def h5_file_exists(file_path: str) -> str:
+def keras_file_exists(file_path: str) -> str:
     """
-    Check if an H5 file exists and is valid.
+    Check if a keras file exists and is valid.
 
     Parameters
     ----------
     file_path : str
-        Path to the H5 file.
+        Path to the keras file.
 
     Returns
     -------
@@ -50,7 +50,7 @@ def h5_file_exists(file_path: str) -> str:
     GenerateAnimationExceptionModelFileNotFound
         If the file is either nonexistent or has the wrong file type.
     """
-    if os.path.exists(file_path) and os.path.isfile(file_path) and file_path.lower().endswith('.h5'):
+    if os.path.exists(file_path) and os.path.isfile(file_path) and file_path.lower().endswith('.keras'):
         return file_path
     else:
         raise GenerateAnimationExceptionModelFileNotFound('Model file is either nonexistent or has the wrong file type')
@@ -114,7 +114,7 @@ def validate_data_quality(data: pd.DataFrame):
 
     if nan_values_angle1 > threshold or nan_values_angle2 > threshold:
         raise GenerateAnimationExceptionQualityNotCorrect(
-            "DataFrame quality is not good enough data contains out of to many NaN values. Try again")
+            "DataFrame quality is not good enough data contains to many NaN values. Try again")
 
 
 def validate_data_length(data: pd.DataFrame, overall_length: int):

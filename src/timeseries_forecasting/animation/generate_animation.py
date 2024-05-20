@@ -1,40 +1,82 @@
-from tensorflow import keras
 import os
+import warnings
+from pathlib import Path
+from typing import Tuple
+import time
+
+import logging
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow INFO and WARNING messages
+import tensorflow as tf
+from tensorflow import keras
+
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 from PIL import Image
 import glob
 from multiprocessing import Pool
-from typing import Tuple
+
 from src.timeseries_forecasting.animation.utils.generation_utils import reconstruct_radian
-from src.timeseries_forecasting.animation.utils.validation_utils import validate_data_correctness, h5_file_exists
-from src.timeseries_forecasting.animation.plot_images import generate_image, run_image_generation_trajectory
+from src.timeseries_forecasting.animation.utils.validation_utils import validate_data_correctness, keras_file_exists
+from src.timeseries_forecasting.animation.plot_images import generate_image
+
+# Suppress SettingWithCopyWarning
+pd.options.mode.chained_assignment = None
+tf.get_logger().setLevel(logging.ERROR)     # Set TensorFlow logging to only display errors (suppressing warnings)
 
 
 def calculate_mse(groundtruth: np.ndarray, prediction: np.ndarray) -> float:
-    from sklearn.metrics import mean_squared_error
+    """
+    Calculate the Mean Squared Error (MSE) between ground truth and prediction.
 
+    Parameters
+    ----------
+    groundtruth : np.ndarray
+        Array containing the ground truth data.
+    prediction : np.ndarray
+        Array containing the predicted data.
+
+    Returns
+    -------
+    float
+        The computed Mean Squared Error (MSE) value.
+    """
     mse1 = mean_squared_error(groundtruth[0], prediction[0])
     mse2 = mean_squared_error(groundtruth[1], prediction[1])
-
     mse = (mse1 + mse2) / 2
-
     return mse
 
 
-def enhance_output_with_past_values(arr: np.ndarray):
-    new_shape = (arr.shape[0], arr.shape[1] * 4)
-    new_arr = np.zeros(new_shape)
+def enhance_output_with_past_values(input_array: np.ndarray):
+    """
+    Enhance the output array with past values for each element.
 
-    new_arr[:, :arr.shape[1]] = arr
+    Parameters
+    ----------
+    input_array : np.ndarray
+        Input array to be enhanced.
 
-    for i in range(3, arr.shape[0]):
-        for j in range(arr.shape[1]):
-            new_arr[i, (j * 3) + arr.shape[1]:(j * 3) + arr.shape[1] + 3] = arr[i - 3:i, j]
+    Returns
+    -------
+    np.ndarray
+        Array with enhanced values, where each element incorporates past values.
+    """
+    num_rows, num_cols = input_array.shape
+    expanded_cols = num_cols * 4
+    enhanced_array = np.zeros((num_rows, expanded_cols))
 
-    return new_arr
+    enhanced_array[:, :num_cols] = input_array
+
+    for current_row in range(4, num_rows):
+        for current_col in range(num_cols):
+            start_idx = current_col * 3 + num_cols
+            end_idx = start_idx + 3
+            enhanced_array[current_row, start_idx:end_idx] = input_array[current_row - 3:current_row, current_col]
+
+    return enhanced_array
 
 
 class GenerateAnimation:
@@ -43,7 +85,7 @@ class GenerateAnimation:
                  gif_path: str,
                  output_length: int,
                  sequence_length: int,
-                 model_path: str = r"C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\model_checkpoints\2024-02-09_11-34-58_rnn_model_rnn_model.h5",
+                 model_path: str = os.path.join(Path(__file__).resolve().parent.parent, "models/100_50_model.keras"),
                  ):
         """
         Initialize the GenerateAnimation object.
@@ -66,7 +108,7 @@ class GenerateAnimation:
         self.pendulum_path = pendulum_path
         self.prediction_path = prediction_path
         self.gif_path = gif_path
-        self.model = keras.models.load_model(h5_file_exists(model_path))
+        self.model = keras.models.load_model(keras_file_exists(model_path))
         self.output_length = output_length
         self.sequence_length = sequence_length
         self.overall_length = sequence_length + output_length
@@ -184,12 +226,16 @@ class GenerateAnimation:
         x_values = np.arange(self.output_length + self.sequence_length)
 
         # Arm 1
-        axes[0].plot(x_values, prediction_output[:, 0], label="Prediction", linestyle='-', marker='o')
+
+        axes[0].plot(x_values[100:], prediction_output[100:, 0], label="Prediction", linestyle='-', marker='o')
         axes[0].plot(x_values, ground_truth_output[:, 0], label="Ground Truth", linestyle='-', marker='o')
+        axes[0].plot(x_values[:100], ground_truth_output[:100, 0], label="Input sequence", linestyle='-', marker='o')
 
         # Arm 2
-        axes[1].plot(x_values, prediction_output[:, 1], label="Prediction", linestyle='-', marker='o')
+
+        axes[1].plot(x_values[100:], prediction_output[100:, 1], label="Prediction", linestyle='-', marker='o')
         axes[1].plot(x_values, ground_truth_output[:, 1], label="Ground Truth", linestyle='-', marker='o')
+        axes[1].plot(x_values[:100], ground_truth_output[:100, 1], label="Input sequence", linestyle='-', marker='o')
 
         # Add titles and legends
         for i in range(2):
@@ -198,35 +244,6 @@ class GenerateAnimation:
             axes[i].legend()
             axes[i].grid(visible=True)
 
-        plt.show()
-
-    def plot_deviation(self, prediction_output: np.array, ground_truth_output: np.array):
-        ground_truth_output = ground_truth_output[self.sequence_length:]
-        prediction_output = prediction_output[self.sequence_length:]
-        deviation = abs(abs(ground_truth_output) - abs(prediction_output))
-
-        print(f"The maximum deviation of Angle 1 is {np.max(deviation[:, 0])}")
-        print(f"The maximum deviation of Angle 2 is {np.max(deviation[:, 1])}")
-
-        print(f"The minimum deviation of Angle 1 is {np.min(deviation[:, 0])}")
-        print(f"The minimum deviation of Angle 2 is {np.min(deviation[:, 1])}")
-
-        print(f"The mean deviation of Angle 1 is {np.mean(deviation[:, 0])}")
-        print(f"The mean deviation of Angle 2 is {np.mean(deviation[:, 1])}")
-
-        print(f"The standard deviation of Angle 1 is {np.std(deviation[:, 0])}")
-        print(f"The standard deviation of Angle 2 is {np.std(deviation[:, 1])}")
-
-        # Get the indices for the plot
-        indices = range(self.output_length)
-
-        # Plot both Angle1 and Angle2 deviation on the same graph
-        plt.plot(indices, deviation, label=['Angle1', 'Angle2'])
-
-        plt.xlabel('Time Step')
-        plt.ylabel('Deviation')
-        plt.title('Deviation for Angle1 and Angle2')
-        plt.legend()
         plt.show()
 
     def build_gif_animation(self):
@@ -257,7 +274,7 @@ class GenerateAnimation:
         """
         Main method to execute the animation generation process.
         """
-        import time
+
         # Measure start time
         start_time = time.time()
         data = self.load_data_from_csv()
@@ -269,18 +286,14 @@ class GenerateAnimation:
         prediction_output, ground_truth_output, mse = self.predict_and_reconstruct_data(
             prediction_input=prediction_input,
             ground_truth_output=ground_truth_output)
+
         print(f"Mean Squared Error: {mse}")
-        self.plot_returns(prediction_output, ground_truth_output)
 
-        self.plot_deviation(prediction_output, ground_truth_output)
-
-        # self.run_image_generation_movement(ground_truth_output=ground_truth_output, prediction_output=prediction_output,
-        #                                    mse=mse)
-
-        run_image_generation_trajectory(ground_truth_output, prediction_output, mse=mse,
-                                        prediction_path=self.prediction_path)
+        self.run_image_generation_movement(ground_truth_output=ground_truth_output, prediction_output=prediction_output,
+                                           mse=mse)
 
         self.build_gif_animation()
+
         # Measure end time
         end_time = time.time()
         # Calculate and print the time taken
@@ -290,11 +303,11 @@ class GenerateAnimation:
 
 if __name__ == "__main__":
     generate_animation = GenerateAnimation(
-        pendulum_path=r"C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\processed\20.csv",
+        pendulum_path=r"C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\processed\251.csv",
         prediction_path=r"C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\work_dir\prediction_data",
         gif_path=r"C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\work_dir\output.gif",
-        output_length=20,
-        sequence_length=50
+        output_length=50,
+        sequence_length=100
     )
 
     generate_animation.main()

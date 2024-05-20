@@ -49,4 +49,3 @@ python -m demo_prediction
 4. Wait until the program records the data, runs the prediction, and generates the images; this may take a while.
 5. Eventually, you will see the results of the original pendulum movement compared to the predicted one.
 
-## Recalibrate camera setup

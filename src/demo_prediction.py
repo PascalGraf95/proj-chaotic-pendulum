@@ -1,10 +1,10 @@
 import os.path
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton
-from PyQt5.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QCoreApplication, QThread, pyqtSignal, QSize
 from PyQt5.QtGui import QMovie, QFont
 from timeseries_forecasting.animation.generate_animation import GenerateAnimation
-from camera_data_processing import run_data_acquisition
+from src.data_acquisition.camera_data_processing import run_data_acquisition
 import shutil
 
 abs_dir = os.path.abspath(os.path.dirname(__file__))
@@ -13,7 +13,8 @@ abs_dir = os.path.abspath(os.path.dirname(__file__))
 class WorkerThread(QThread):
     finished_signal = pyqtSignal()
 
-    def __init__(self, pendulum_data, prediction_path, gif_path, output_length, sequence_length, parent=None):
+    def __init__(self, pendulum_data: str, prediction_path: str, gif_path: str, output_length: int,
+                 sequence_length: int, parent=None):
         super(WorkerThread, self).__init__(parent)
         self.pendulum_data = pendulum_data
         self.prediction_path = prediction_path
@@ -22,6 +23,7 @@ class WorkerThread(QThread):
         self.sequence_length = sequence_length
 
     def run(self):
+        """Run animation generation process as Thread to avoid conflict with frontend."""
         generate_animation = GenerateAnimation(pendulum_path=self.pendulum_data,
                                                prediction_path=self.prediction_path,
                                                gif_path=self.gif_path,
@@ -32,7 +34,7 @@ class WorkerThread(QThread):
 
 
 class ChaoticPendulumPredictionApp(QMainWindow):
-    def __init__(self, input_sequence: int = 50, output_sequence: int = 200):
+    def __init__(self, input_sequence: int = 100, output_sequence: int = 50):
         super(ChaoticPendulumPredictionApp, self).__init__()
         self.worker_thread = None
         self.gif_label = None
@@ -45,7 +47,6 @@ class ChaoticPendulumPredictionApp(QMainWindow):
         self.setGeometry(100, 100, 800, 600)
         self.work_dir = os.path.join(abs_dir, "work_dir")
         self.pendulum_data = os.path.join(self.work_dir, "data.csv")
-        self.real_images_path = os.path.join(self.work_dir, "real_images")
         self.gif_path = os.path.join(self.work_dir, "output.gif")
         self.prediction_path = os.path.join(self.work_dir, "prediction_data")
 
@@ -53,6 +54,7 @@ class ChaoticPendulumPredictionApp(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
+        """Initialize all ui elements."""
         self.create_instruction_label()
         self.create_prediction_button()
         self.create_status_label()
@@ -60,11 +62,10 @@ class ChaoticPendulumPredictionApp(QMainWindow):
 
     def init_workdir(self):
         """Initialize the work directory, removing existing content if necessary."""
-        # if os.path.isdir(self.work_dir):
-        #     shutil.rmtree(self.work_dir)
-        # os.makedirs(self.work_dir)
-        # os.makedirs(self.prediction_path)
-        # os.makedirs(self.real_images_path)
+        if os.path.isdir(self.work_dir):
+            shutil.rmtree(self.work_dir)
+        os.makedirs(self.work_dir)
+        os.makedirs(self.prediction_path)
 
     def create_instruction_label(self):
         instruction_label = QLabel(
@@ -101,8 +102,7 @@ class ChaoticPendulumPredictionApp(QMainWindow):
     def start_prediction(self):
         self.status_label.setText("Zeitdaten werden eingelesen")
         QCoreApplication.processEvents()
-        # run_data_acquisition(pendulum_data=self.pendulum_data, data_length=self.data_length,
-        #                      image_path=self.real_images_path, video_path=None)
+        run_data_acquisition(pendulum_data=self.pendulum_data, data_length=self.data_length, video_path=None)
         self.status_label.setText("Vorhersage und Animation wird generiert")
         QCoreApplication.processEvents()
 
@@ -116,7 +116,7 @@ class ChaoticPendulumPredictionApp(QMainWindow):
 
     def on_animation_finished(self):
         self.status_label.setText(
-            "Auf der linken Seite ist die reale Bewegung zu sehen, auf der rechten Seite die vorhergesagte.")
+            "Auf der linken Seite ist die reale zu sehen, auf der rechten Seite die Vorhergesagte Bewegung.")
         QCoreApplication.processEvents()
         self.set_gif()
 
@@ -124,13 +124,13 @@ class ChaoticPendulumPredictionApp(QMainWindow):
         movie = QMovie(self.gif_path)
 
         # Adjust the size of the movie
-        scaled_size = self.gif_label.size() * 0.6
+        scaled_size = QSize(840, 420)
         movie.setScaledSize(scaled_size)
-
-        self.gif_label.setMovie(movie)
 
         # Adjust the geometry of the label
         self.gif_label.setGeometry(550, 300, 800, 560)
+
+        self.gif_label.setMovie(movie)
 
         movie.start()
 
