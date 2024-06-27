@@ -1,7 +1,7 @@
-from data_acquisition.camera_controller import IDSCameraController, ImageStreamController
-from data_acquisition.angle_detection import AngleDetector
-from data_acquisition.recording import DataRecorder
-from data_acquisition.recording import FrameRecorder
+from src.data_acquisition.camera_controller import IDSCameraController, ImageStreamController
+from src.data_acquisition.angle_detection import AngleDetector
+from src.data_acquisition.recording import DataRecorder
+from src.data_acquisition.recording import FrameRecorder
 
 
 def run_data_acquisition(pendulum_data: str, data_length: int, video_path: str):
@@ -19,14 +19,8 @@ def run_data_acquisition(pendulum_data: str, data_length: int, video_path: str):
 
     Notes
     -----
-    If `video_path` is None, the function will capture data from a connected camera using the IDSCameraController.
-    If `video_path` is provided, the function will use ImageStreamController to process a pre-recorded video.
     """
-    if not video_path:
-        # Initialize camera, param_file = set camera parameters with .ini file
-        camera = IDSCameraController(param_file=r"../../CameraParameters/cp_230809_AngleDetection.ini")
-    else:
-        camera = ImageStreamController(video_path=video_path)
+    camera = IDSCameraController(param_file=r"../CameraParameters/cp_230809_AngleDetection.ini")
     print("Start!")
     measurement = AngleDetector()
 

@@ -122,7 +122,8 @@ class GenerateAnimation:
         pd.DataFrame
             Data which includes time series data.
         """
-        return pd.read_csv(self.pendulum_path, delimiter=",")
+        # Attention this could be different depending on the csv format!
+        return pd.read_csv(self.pendulum_path, delimiter=";")
 
     def filter_and_preprocess_data(self, data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         """

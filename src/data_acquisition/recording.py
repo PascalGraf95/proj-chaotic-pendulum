@@ -164,8 +164,8 @@ class FrameRecorder:
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # create file path for saving frames
-        # if not os.path.exists(f"../DataRecords/{self.timestamp}_{self.folder}"):
-            # os.makedirs(f"../DataRecords/{self.timestamp}_{self.folder}")
+        if not os.path.exists(f"../DataRecords/{self.timestamp}_{self.folder}"):
+            os.makedirs(f"../DataRecords/{self.timestamp}_{self.folder}")
 
     def save_latest_frame(self, frame):
         # make sure that angle detection is active and frames are captured

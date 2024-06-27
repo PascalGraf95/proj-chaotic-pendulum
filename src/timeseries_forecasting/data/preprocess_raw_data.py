@@ -92,7 +92,7 @@ def load_data_from_csv(path):
 
 
 def main():
-    path = r'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\2024-02-15_20-49-19_rnn_model.csv'
+    path = r'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\work_dir\data.csv'
 
     # Data loading
     data = prepare_time_series(load_data_from_csv(path))
@@ -119,15 +119,15 @@ def main():
 
 if __name__ == "__main__":
 
-    # main()
-    for number in range(0, 5045):
-        print(number)
-        path = fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\DataRecords\{number}\{number}.csv'
-        # Data loading
-        data = prepare_time_series(load_data_from_csv(path))
-        df = pd.DataFrame(data)
-
-        # Save the DataFrame to a CSV file
-        df.to_csv(
-            fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\processed\{number}.csv',
-            index=False)
+    main()
+    # for number in range(0, 5045):
+    #     print(number)
+    #     path = fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\DataRecords\{number}\{number}.csv'
+    #     # Data loading
+    #     data = prepare_time_series(load_data_from_csv(path))
+    #     df = pd.DataFrame(data)
+    #
+    #     # Save the DataFrame to a CSV file
+    #     df.to_csv(
+    #         fr'C:\Users\Marco\dev\git\proj-chaotic-pendulum\src\timeseries_forecasting\data\processed\{number}.csv',
+    #         index=False)
